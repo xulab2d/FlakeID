@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flakefinder-lab"
+version = "0.1.0"
+description = "MVP architecture for automated 2D material flake discovery."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "opencv-python-headless>=4.9",
+  "PyYAML>=6.0",
+  "pandas>=2.2",
+  "pyarrow>=15.0",
+  "tifffile>=2024.2",
+  "Pillow>=10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+baseline = [
+  "joblib>=1.4",
+  "scikit-image>=0.21",
+  "scikit-learn>=1.3",
+  "numba>=0.57",
+]
+hardware = [
+  "pycro-manager>=1.0",
+]
+
+[project.scripts]
+flakefinder = "flakefinder.cli.main:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["flakefinder*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

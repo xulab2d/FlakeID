@@ -1,0 +1,9 @@
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.egg-info/
+runs/
+tmp_demo_tiles/
+data/manifests/*.json
+data/manifests/*.coco.json
