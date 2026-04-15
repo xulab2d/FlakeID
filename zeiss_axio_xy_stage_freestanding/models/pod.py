@@ -29,6 +29,15 @@ def build_pod_body(params: FreestandingPodParams) -> cq.Workplane:
     )
     body = body.union(tower)
 
+    access_window = (
+        cq.Workplane("XZ")
+        .center(0.0, params.base_height_mm + params.access_window_z_center_mm)
+        .rect(params.access_window_width_mm, params.access_window_height_mm)
+        .extrude(params.tower_thickness_mm + 2.0)
+        .translate((0.0, -(params.base_width_mm / 2.0) - 1.0, 0.0))
+    )
+    body = body.cut(access_window)
+
     slot_centers = [
         (-params.slot_center_spacing_mm / 2.0, params.slot_z_center_mm),
         (params.slot_center_spacing_mm / 2.0, params.slot_z_center_mm),
@@ -42,6 +51,30 @@ def build_pod_body(params: FreestandingPodParams) -> cq.Workplane:
         .translate((0.0, -(params.base_width_mm / 2.0) - 1.0, 0.0))
     )
     body = body.cut(slots)
+
+    cable_notch = (
+        cq.Workplane("XZ")
+        .center(0.0, params.base_height_mm + params.tower_height_mm - (params.cable_notch_depth_mm / 2.0))
+        .rect(params.cable_notch_width_mm, params.cable_notch_depth_mm)
+        .extrude(params.tower_thickness_mm + 2.0)
+        .translate((0.0, -(params.base_width_mm / 2.0) - 1.0, 0.0))
+    )
+    body = body.cut(cable_notch)
+
+    tie_slots = (
+        cq.Workplane("XZ")
+        .center(0.0, params.base_height_mm)
+        .pushPoints(
+            [
+                (-params.cable_tie_slot_x_spacing_mm / 2.0, params.cable_tie_slot_z_mm),
+                (params.cable_tie_slot_x_spacing_mm / 2.0, params.cable_tie_slot_z_mm),
+            ]
+        )
+        .slot2D(params.cable_tie_slot_height_mm, params.cable_tie_slot_width_mm, 90.0)
+        .extrude(params.tower_thickness_mm + 2.0)
+        .translate((0.0, -(params.base_width_mm / 2.0) - 1.0, 0.0))
+    )
+    body = body.cut(tie_slots)
 
     finger_cut = (
         cq.Workplane("XY")
@@ -120,7 +153,14 @@ def build_motor_plate(params: FreestandingPodParams) -> cq.Workplane:
         .circle(params.motor_center_hole_d_mm / 2.0)
         .extrude(params.motor_plate_thickness_mm + 2.0)
     )
-    plate = plate.cut(motor_holes).cut(shaft_hole)
+    cable_slot = (
+        cq.Workplane("XY")
+        .center(0.0, (params.motor_center_hole_d_mm / 4.0) + (params.motor_cable_slot_length_mm / 2.0))
+        .slot2D(params.motor_cable_slot_length_mm, params.motor_cable_slot_width_mm, 0.0)
+        .extrude(params.motor_plate_thickness_mm + 2.0)
+        .translate((0.0, 0.0, -0.5))
+    )
+    plate = plate.cut(motor_holes).cut(shaft_hole).cut(cable_slot)
 
     tower_holes = (
         cq.Workplane("XZ")
@@ -136,6 +176,16 @@ def build_motor_plate(params: FreestandingPodParams) -> cq.Workplane:
         .translate((0.0, -(params.motor_plate_depth_mm / 2.0) - 1.0, 0.0))
     )
     plate = plate.cut(tower_holes)
+
+    tie_slots = (
+        cq.Workplane("XZ")
+        .center(0.0, params.motor_plate_flange_height_mm * 0.72)
+        .pushPoints([(-14.0, 0.0), (14.0, 0.0)])
+        .slot2D(12.0, 4.5, 90.0)
+        .extrude(params.motor_plate_flange_thickness_mm + 2.0)
+        .translate((0.0, -(params.motor_plate_depth_mm / 2.0) - 1.0, 0.0))
+    )
+    plate = plate.cut(tie_slots)
     return plate
 
 

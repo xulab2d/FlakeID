@@ -42,10 +42,11 @@ This project uses:
 The pod concept is deliberately simple:
 
 - a heavy printable base with ballast cavity
-- a vertical tower
+- a vertical tower made as `two slotted side rails` with a center access window
 - an adjustable-height horizontal `NEMA17` motor plate
 - motor shaft pointing upward
 - GT2 belt between the motor pulley and the knob pulley
+- explicit cable notch and cable-tie slots for motor wiring
 
 ## Project Layout
 
@@ -87,6 +88,15 @@ Clamp strategy for the knob pulleys:
 - shell bore sized to compress the liner against the knurled knob
 - built-in bolt-head and hex-nut pockets for clamp preload
 
+Pod adjustment / wiring strategy:
+
+- the motor plate bolts to the tower through `two visible vertical slots`, one in each side rail
+- you loosen the two tower bolts, slide the plate up or down, and retighten
+- the large center cutout makes those slots and bolts easier to see and reach
+- the motor plate has a cable slot near the motor center hole so the motor lead can exit cleanly
+- the top of the tower has a cable notch
+- both the tower and the motor flange have tie slots so the cable can be strain-relieved down the pod
+
 ## Hardware Assumptions
 
 - `2x NEMA17` motors
@@ -123,6 +133,18 @@ These pulleys are intentionally more aggressive than the first pass:
 - the liner can be printed in `TPU 95A` or used as a template for cut sheet rubber
 
 This should be substantially more trustworthy than the earlier smooth-bore friction clamp.
+
+## Motor Wiring
+
+Suggested routing:
+
+1. mount the motor with the connector facing the open side of the plate
+2. route the cable through the plate cable slot
+3. bring the cable toward the tower notch
+4. tie the cable to the flange/tower tie slots
+5. run the cable downward along the back of the pod
+
+That is the intended analog of the donor UC2 motor-mount style: keep cable exit clear of the belt path and give it a defined strain-relief path.
 
 ## Likely Next Refinements
 
