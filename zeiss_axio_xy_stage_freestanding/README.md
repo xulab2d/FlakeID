@@ -56,8 +56,14 @@ The pod concept is deliberately simple:
   - CadQuery model builders
 - `scripts/export_models.py`
   - STL export script
+- `sketches/`
+  - concept drawing of the overall XY setup
 - `references/donor_stl/`
   - upstream donor STL files gathered for comparison
+
+Concept sketch:
+
+- [xy_stage_setup_concept.svg](/Users/xulab/Desktop/Flake_Identification/flakefinder_lab/zeiss_axio_xy_stage_freestanding/sketches/xy_stage_setup_concept.svg)
 
 ## Printable Parts
 
