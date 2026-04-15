@@ -45,7 +45,8 @@ The pod concept is deliberately simple:
 - a vertical tower made as `two slotted side rails` with a center access window
 - an adjustable-height horizontal `NEMA17` motor plate
 - motor shaft pointing upward
-- GT2 belt between the motor pulley and the knob pulley
+- small metal `GT2 20T` pulley fixed to the motor shaft
+- horizontal `GT2` belt directly between the motor pulley and the knob pulley
 - explicit cable notch and cable-tie slots for motor wiring
 
 ## Project Layout
@@ -60,6 +61,8 @@ The pod concept is deliberately simple:
   - concept drawing of the overall XY setup
 - `references/donor_stl/`
   - upstream donor STL files gathered for comparison
+- `MINIMAL_BUY_LIST.md`
+  - minimal purchased-part list for the first `XY-only` build
 
 Concept sketch:
 
@@ -103,7 +106,7 @@ Pod adjustment / wiring strategy:
 
 - `2x NEMA17` motors
 - `2x GT2 20T metal pulleys`, `5 mm` bore
-- `GT2 6 mm` belt
+- `GT2 6 mm` closed-loop belts
 - `M3` screws for motor mounting
 - `3x M3 socket-head screws + 3x M3 hex nuts` for each knob pulley
 - `M5` or `M6` bolts/washers/nuts for plate-to-tower mounting
@@ -166,5 +169,5 @@ That is the intended analog of the donor UC2 motor-mount style: keep cable exit 
 
 - tune the knob pulley width and flange profile after a dry fit
 - tune the pod height slots after testing actual belt plane
-- decide whether a simple direct belt is enough or whether an idler should be added
+- decide whether direct two-pulley belt wrap is enough or whether an idler should be added
 - widen or narrow the ballast cavity based on the weight you want to use

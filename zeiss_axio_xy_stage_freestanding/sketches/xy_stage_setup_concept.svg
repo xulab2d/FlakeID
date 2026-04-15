@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="820" viewBox="0 0 1280 820">
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#4b5563"/>
@@ -9,6 +9,7 @@
     <style>
       .title { font: 700 28px Arial, sans-serif; fill: #111827; }
       .subtitle { font: 400 16px Arial, sans-serif; fill: #4b5563; }
+      .panel { font: 700 22px Arial, sans-serif; fill: #111827; }
       .label { font: 600 16px Arial, sans-serif; fill: #111827; }
       .small { font: 400 14px Arial, sans-serif; fill: #374151; }
       .tiny { font: 400 12px Arial, sans-serif; fill: #6b7280; }
@@ -25,102 +26,129 @@
       .pulleyY { fill: #bfdbfe; stroke: #1d4ed8; stroke-width: 3; }
       .dim { fill: none; stroke: #4b5563; stroke-width: 2; marker-start: url(#arrow); marker-end: url(#arrow); }
       .guide { fill: none; stroke: #9ca3af; stroke-width: 1.5; stroke-dasharray: 6 6; }
+      .diskEdgeX { fill: #fed7aa; stroke: #ea580c; stroke-width: 2; }
+      .diskEdgeY { fill: #bfdbfe; stroke: #1d4ed8; stroke-width: 2; }
+      .noteBox { fill: #f9fafb; stroke: #d1d5db; stroke-width: 1.5; }
     </style>
   </defs>
 
-  <rect x="0" y="0" width="1280" height="820" fill="#ffffff"/>
-
+  <rect x="0" y="0" width="1400" height="900" fill="#ffffff"/>
   <text x="56" y="54" class="title">Zeiss Axio XY-Only Freestanding Motor Pod Concept</text>
-  <text x="56" y="84" class="subtitle">Right-side elevation, conceptual only. Focus remains manual. Not to scale for final fabrication.</text>
+  <text x="56" y="84" class="subtitle">Two-view sketch: left = side/elevation for heights, right = top/plan for actual belt drive geometry.</text>
 
-  <!-- Table -->
-  <line x1="40" y1="650" x2="1240" y2="650" stroke="#111827" stroke-width="4"/>
-  <text x="60" y="690" class="label">table / benchtop</text>
+  <!-- LEFT PANEL -->
+  <text x="70" y="130" class="panel">Side / Elevation View</text>
+  <line x1="50" y1="700" x2="670" y2="700" stroke="#111827" stroke-width="4"/>
+  <text x="70" y="738" class="label">table / benchtop</text>
 
-  <!-- Microscope body -->
-  <rect x="100" y="470" width="280" height="180" rx="16" class="body"/>
-  <rect x="210" y="330" width="250" height="140" rx="12" class="stage"/>
-  <rect x="250" y="255" width="160" height="75" rx="8" class="body"/>
-  <rect x="150" y="545" width="120" height="60" rx="10" class="dark"/>
-  <text x="134" y="248" class="label">microscope body</text>
-  <text x="245" y="320" class="label">stage underside</text>
+  <!-- microscope -->
+  <rect x="90" y="520" width="220" height="180" rx="16" class="body"/>
+  <rect x="190" y="380" width="210" height="140" rx="12" class="stage"/>
+  <rect x="220" y="315" width="140" height="65" rx="8" class="body"/>
+  <text x="122" y="304" class="label">microscope</text>
+  <text x="218" y="371" class="label">stage underside</text>
 
-  <!-- Knob shaft and stacked knobs -->
-  <rect x="494" y="504" width="18" height="70" rx="8" class="dark"/>
-  <circle cx="503" cy="551" r="26" class="pulleyX"/>
-  <circle cx="503" cy="524" r="30" class="pulleyY"/>
-  <circle cx="503" cy="551" r="14" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
-  <circle cx="503" cy="524" r="17" fill="#eff6ff" stroke="#1d4ed8" stroke-width="2"/>
-  <text x="548" y="518" class="label">Y knob + clamp pulley</text>
-  <text x="548" y="548" class="label">X knob + clamp pulley</text>
-  <text x="548" y="571" class="small">stacked on same shaft axis below stage</text>
-
-  <!-- Guides -->
-  <line x1="503" y1="650" x2="503" y2="470" class="guide"/>
+  <!-- shaft + knob pulleys as horizontal disks seen from side -->
+  <rect x="430" y="555" width="16" height="72" rx="8" class="dark"/>
+  <rect x="402" y="585" width="72" height="12" rx="5" class="diskEdgeX"/>
+  <rect x="396" y="558" width="84" height="12" rx="5" class="diskEdgeY"/>
+  <text x="500" y="563" class="label">Y knob pulley</text>
+  <text x="500" y="592" class="label">X knob pulley</text>
+  <text x="500" y="614" class="small">both pulleys are horizontal disks on a vertical shaft</text>
 
   <!-- X pod -->
-  <rect x="700" y="622" width="170" height="28" class="pod"/>
-  <rect x="726" y="626" width="118" height="20" class="ballast"/>
-  <rect x="738" y="444" width="18" height="178" class="pod"/>
-  <rect x="814" y="444" width="18" height="178" class="pod"/>
-  <rect x="756" y="480" width="58" height="92" class="slot"/>
-  <rect x="733" y="517" width="8" height="72" rx="3" class="slot"/>
-  <rect x="821" y="517" width="8" height="72" rx="3" class="slot"/>
-  <rect x="724" y="450" width="122" height="18" class="slot"/>
-  <rect x="710" y="540" width="138" height="10" class="pod"/>
-  <rect x="764" y="500" width="60" height="40" class="dark"/>
-  <circle cx="779" cy="551" r="15" class="pulleyX"/>
-  <path d="M 532 551 C 592 551, 650 551, 764 551" class="xbelt"/>
-  <path d="M 788 516 C 800 510, 815 500, 840 487" class="cable"/>
-  <rect x="838" y="474" width="8" height="18" rx="2" class="slot"/>
-  <rect x="729" y="457" width="8" height="14" rx="2" class="slot"/>
-  <rect x="833" y="457" width="8" height="14" rx="2" class="slot"/>
-  <text x="692" y="414" class="label">X motor pod</text>
-  <text x="690" y="436" class="small">weighted base + two slotted rails + adjustable motor plate</text>
+  <rect x="520" y="672" width="120" height="28" class="pod"/>
+  <rect x="538" y="676" width="84" height="20" class="ballast"/>
+  <rect x="555" y="510" width="14" height="162" class="pod"/>
+  <rect x="595" y="510" width="14" height="162" class="pod"/>
+  <rect x="565" y="540" width="34" height="92" class="slot"/>
+  <rect x="549" y="560" width="6" height="70" rx="3" class="slot"/>
+  <rect x="609" y="560" width="6" height="70" rx="3" class="slot"/>
+  <rect x="540" y="516" width="84" height="16" class="slot"/>
+  <rect x="534" y="574" width="86" height="10" class="pod"/>
+  <rect x="557" y="548" width="40" height="26" class="dark"/>
+  <rect x="545" y="585" width="64" height="10" rx="4" class="diskEdgeX"/>
+  <line x1="474" y1="591" x2="545" y2="591" class="xbelt"/>
+  <text x="525" y="497" class="label">X motor pod</text>
 
   <!-- Y pod -->
-  <rect x="930" y="622" width="170" height="28" class="pod"/>
-  <rect x="956" y="626" width="118" height="20" class="ballast"/>
-  <rect x="968" y="420" width="18" height="202" class="pod"/>
-  <rect x="1044" y="420" width="18" height="202" class="pod"/>
-  <rect x="986" y="446" width="58" height="110" class="slot"/>
-  <rect x="963" y="490" width="8" height="72" rx="3" class="slot"/>
-  <rect x="1051" y="490" width="8" height="72" rx="3" class="slot"/>
-  <rect x="954" y="426" width="122" height="18" class="slot"/>
-  <rect x="940" y="513" width="138" height="10" class="pod"/>
-  <rect x="994" y="473" width="60" height="40" class="dark"/>
-  <circle cx="1009" cy="524" r="15" class="pulleyY"/>
-  <path d="M 534 524 C 664 524, 802 524, 994 524" class="ybelt"/>
-  <path d="M 1018 489 C 1030 482, 1048 470, 1072 455" class="cable"/>
-  <rect x="1068" y="446" width="8" height="18" rx="2" class="slot"/>
-  <rect x="959" y="433" width="8" height="14" rx="2" class="slot"/>
-  <rect x="1055" y="433" width="8" height="14" rx="2" class="slot"/>
-  <text x="922" y="390" class="label">Y motor pod</text>
-  <text x="920" y="412" class="small">second pod can sit farther laterally to avoid belt interference</text>
+  <rect x="770" y="672" width="120" height="28" class="pod"/>
+  <rect x="788" y="676" width="84" height="20" class="ballast"/>
+  <rect x="805" y="480" width="14" height="192" class="pod"/>
+  <rect x="845" y="480" width="14" height="192" class="pod"/>
+  <rect x="815" y="512" width="34" height="104" class="slot"/>
+  <rect x="799" y="532" width="6" height="70" rx="3" class="slot"/>
+  <rect x="859" y="532" width="6" height="70" rx="3" class="slot"/>
+  <rect x="790" y="486" width="84" height="16" class="slot"/>
+  <rect x="784" y="547" width="86" height="10" class="pod"/>
+  <rect x="807" y="522" width="40" height="26" class="dark"/>
+  <rect x="795" y="558" width="64" height="10" rx="4" class="diskEdgeY"/>
+  <line x1="480" y1="564" x2="795" y2="564" class="ybelt"/>
+  <text x="775" y="467" class="label">Y motor pod</text>
 
-  <!-- Callouts -->
-  <text x="710" y="670" class="small">ballast cavity + lid</text>
-  <text x="770" y="493" class="small">NEMA17</text>
-  <text x="999" y="466" class="small">NEMA17</text>
-  <text x="845" y="501" class="small">cable route</text>
-  <text x="1082" y="464" class="small">cable route</text>
-  <text x="771" y="607" class="small">vertical slots for plate height adjustment</text>
+  <!-- cable paths -->
+  <path d="M 597 560 C 618 548, 630 532, 628 524" class="cable"/>
+  <path d="M 847 535 C 868 522, 880 505, 878 494" class="cable"/>
 
-  <!-- Dimensions -->
-  <line x1="84" y1="650" x2="84" y2="565" class="dim"/>
-  <text x="18" y="612" class="small">85 mm</text>
-  <line x1="54" y1="650" x2="54" y2="541" class="dim"/>
-  <text x="4" y="595" class="small">109 mm</text>
-  <line x1="24" y1="650" x2="24" y2="470" class="dim"/>
-  <text x="2" y="566" class="small">180 mm</text>
+  <!-- dimensions -->
+  <line x1="34" y1="700" x2="34" y2="615" class="dim"/>
+  <text x="8" y="660" class="small">85 mm</text>
+  <line x1="16" y1="700" x2="16" y2="588" class="dim"/>
+  <text x="0" y="645" class="small">109 mm</text>
+  <line x1="-2" y1="700" x2="-2" y2="520" class="dim"/>
+  <text x="0" y="612" class="small">180 mm</text>
+  <line x1="34" y1="615" x2="430" y2="615" class="guide"/>
+  <line x1="16" y1="588" x2="430" y2="588" class="guide"/>
+  <line x1="-2" y1="520" x2="399" y2="520" class="guide"/>
 
-  <line x1="84" y1="565" x2="500" y2="565" class="guide"/>
-  <line x1="54" y1="541" x2="500" y2="541" class="guide"/>
-  <line x1="24" y1="470" x2="460" y2="470" class="guide"/>
+  <!-- RIGHT PANEL -->
+  <text x="760" y="130" class="panel">Top / Plan View</text>
+  <rect x="760" y="170" width="580" height="520" rx="12" fill="#fafafa" stroke="#e5e7eb" stroke-width="2"/>
 
-  <text x="96" y="727" class="label">Notes</text>
-  <text x="96" y="752" class="small">1. Two independent pods let X and Y motor heights be tuned separately.</text>
-  <text x="96" y="776" class="small">2. Clamp pulleys sit on the knurled knobs; belts run laterally to freestanding motors.</text>
-  <text x="650" y="752" class="small">3. Pod bases are intentionally heavy so belt tension does not shift the motor supports.</text>
-  <text x="650" y="776" class="small">4. Focus remains manual; only the stacked X/Y knobs are motorized in this phase.</text>
+  <!-- stage footprint -->
+  <rect x="850" y="270" width="220" height="120" rx="10" class="stage"/>
+  <text x="900" y="255" class="label">stage footprint above</text>
+
+  <!-- stacked knob axis -->
+  <circle cx="1120" cy="330" r="36" class="pulleyY"/>
+  <circle cx="1120" cy="330" r="28" class="pulleyX"/>
+  <circle cx="1120" cy="330" r="8" fill="#ffffff" stroke="#4b5563" stroke-width="2"/>
+  <text x="1158" y="314" class="label">stacked X/Y knob pulleys</text>
+  <text x="1158" y="336" class="small">same vertical shaft axis</text>
+
+  <!-- X pod top -->
+  <rect x="770" y="500" width="150" height="90" class="pod"/>
+  <rect x="790" y="520" width="110" height="50" class="ballast"/>
+  <circle cx="845" cy="448" r="16" class="pulleyX"/>
+  <rect x="820" y="448" width="50" height="72" rx="6" class="dark"/>
+  <path d="M 1100 352 C 1045 410, 980 448, 861 448" class="xbelt"/>
+  <text x="772" y="616" class="label">X pod</text>
+  <text x="772" y="636" class="small">motor shaft vertical</text>
+  <text x="772" y="656" class="small">small metal GT2 pulley on shaft</text>
+
+  <!-- Y pod top -->
+  <rect x="770" y="190" width="150" height="90" class="pod"/>
+  <rect x="790" y="210" width="110" height="50" class="ballast"/>
+  <circle cx="845" cy="330" r="16" class="pulleyY"/>
+  <rect x="820" y="260" width="50" height="72" rx="6" class="dark"/>
+  <path d="M 1084 330 C 1030 330, 980 330, 861 330" class="ybelt"/>
+  <text x="772" y="160" class="label">Y pod</text>
+  <text x="772" y="180" class="small">placed farther back or forward as needed</text>
+
+  <!-- callouts -->
+  <line x1="845" y1="448" x2="930" y2="448" class="guide"/>
+  <text x="940" y="452" class="small">motor pulley drives belt directly</text>
+  <line x1="845" y1="330" x2="930" y2="330" class="guide"/>
+  <text x="940" y="334" class="small">same geometry for Y axis at different height</text>
+
+  <rect x="950" y="508" width="350" height="122" rx="10" class="noteBox"/>
+  <text x="970" y="538" class="label">How the motor drives the belt</text>
+  <text x="970" y="565" class="small">1. NEMA17 is mounted shaft-up on the adjustable plate.</text>
+  <text x="970" y="590" class="small">2. A metal GT2 pulley is fixed to the 5 mm motor shaft.</text>
+  <text x="970" y="615" class="small">3. The GT2 belt runs horizontally from motor pulley to knob pulley.</text>
+
+  <!-- bottom notes -->
+  <text x="70" y="812" class="label">Interpretation</text>
+  <text x="70" y="838" class="small">The pods are freestanding and only provide vertically oriented motor shafts. The belt plane is horizontal.</text>
+  <text x="70" y="862" class="small">The previous single-view sketch implied the wrong pulley orientation. This two-view sketch is the intended setup.</text>
 </svg>
