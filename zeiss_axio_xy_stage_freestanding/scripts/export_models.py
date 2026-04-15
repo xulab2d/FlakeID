@@ -14,8 +14,13 @@ from cadquery import exporters
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from zeiss_axio_cad.models.split_pulley import build_split_pulley
-from zeiss_axio_xy_stage_freestanding.models import build_motor_plate, build_pod_ballast_lid, build_pod_body, build_preview
+from zeiss_axio_xy_stage_freestanding.models import (
+    build_compliant_clamp_pulley,
+    build_motor_plate,
+    build_pod_ballast_lid,
+    build_pod_body,
+    build_preview,
+)
 from zeiss_axio_xy_stage_freestanding.params import POD, X_PULLEY, Y_PULLEY
 
 
@@ -27,6 +32,8 @@ DONOR_STL = ROOT / "references" / "donor_stl"
 def _ensure_dirs() -> None:
     EXPORT_STL.mkdir(parents=True, exist_ok=True)
     DONOR_STL.mkdir(parents=True, exist_ok=True)
+    for existing in EXPORT_STL.glob("*.stl"):
+        existing.unlink()
 
 
 def _export_shape(name: str, shape: cq.Shape) -> None:
@@ -57,8 +64,8 @@ def _copy_donor_refs() -> None:
 def main() -> int:
     _ensure_dirs()
 
-    x_pulley = build_split_pulley(X_PULLEY, "axio_x_knob_pulley")
-    y_pulley = build_split_pulley(Y_PULLEY, "axio_y_knob_pulley")
+    x_pulley = build_compliant_clamp_pulley(X_PULLEY, "axio_x_knob_pulley")
+    y_pulley = build_compliant_clamp_pulley(Y_PULLEY, "axio_y_knob_pulley")
     pod_body = build_pod_body(POD)
     pod_lid = build_pod_ballast_lid(POD)
     pod_motor_plate = build_motor_plate(POD)

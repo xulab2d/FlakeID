@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from zeiss_axio_cad.params import SplitPulleyParams
-
 
 @dataclass(frozen=True, slots=True)
 class MeasuredHeights:
@@ -42,7 +40,28 @@ class FreestandingPodParams:
     tower_mount_hole_spacing_mm: float = 38.0
 
 
+@dataclass(frozen=True, slots=True)
+class CompliantClampPulleyParams:
+    knob_d_mm: float
+    outer_d_mm: float
+    body_height_mm: float = 22.0
+    flange_height_mm: float = 14.0
+    liner_radial_thickness_mm: float = 1.4
+    liner_inner_preload_mm: float = 0.8
+    rigid_bore_clearance_mm: float = 0.6
+    split_gap_mm: float = 1.4
+    ear_width_mm: float = 12.0
+    ear_depth_mm: float = 9.0
+    clamp_hole_d_mm: float = 3.4
+    clamp_head_d_mm: float = 6.2
+    clamp_head_depth_mm: float = 3.4
+    clamp_nut_width_mm: float = 6.2
+    clamp_nut_depth_mm: float = 3.2
+    clamp_z_fracs: tuple[float, ...] = (0.2, 0.5, 0.8)
+    liner_relief_gap_mm: float = 0.9
+
+
 HEIGHTS = MeasuredHeights()
 POD = FreestandingPodParams()
-X_PULLEY = SplitPulleyParams(knob_d_mm=27.8, outer_d_mm=44.0, body_height_mm=20.0, flange_height_mm=14.0)
-Y_PULLEY = SplitPulleyParams(knob_d_mm=32.93, outer_d_mm=50.0, body_height_mm=20.0, flange_height_mm=14.0)
+X_PULLEY = CompliantClampPulleyParams(knob_d_mm=27.8, outer_d_mm=46.0)
+Y_PULLEY = CompliantClampPulleyParams(knob_d_mm=32.93, outer_d_mm=52.0)

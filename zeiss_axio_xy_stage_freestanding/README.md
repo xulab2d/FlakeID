@@ -35,7 +35,7 @@ Those ranges are intentionally loose because the exact usable belt plane depends
 
 This project uses:
 
-- `custom split-clamp pulleys` for the Zeiss Axio `X/Y` knobs
+- `custom rigid-shell + compliant-liner clamp pulleys` for the Zeiss Axio `X/Y` knobs
 - `custom freestanding weighted motor pods` with adjustable motor height
 - `donor STL references` for `NEMA17` motor mount and pulley/gear proportions
 
@@ -62,10 +62,14 @@ The pod concept is deliberately simple:
 
 Print:
 
-- `1x` `axio_x_knob_pulley_left_half.stl`
-- `1x` `axio_x_knob_pulley_right_half.stl`
-- `1x` `axio_y_knob_pulley_left_half.stl`
-- `1x` `axio_y_knob_pulley_right_half.stl`
+- `1x` `axio_x_knob_pulley_rigid_left_half.stl`
+- `1x` `axio_x_knob_pulley_rigid_right_half.stl`
+- `1x` `axio_x_knob_pulley_liner_left_half.stl` in `TPU`
+- `1x` `axio_x_knob_pulley_liner_right_half.stl` in `TPU`
+- `1x` `axio_y_knob_pulley_rigid_left_half.stl`
+- `1x` `axio_y_knob_pulley_rigid_right_half.stl`
+- `1x` `axio_y_knob_pulley_liner_left_half.stl` in `TPU`
+- `1x` `axio_y_knob_pulley_liner_right_half.stl` in `TPU`
 - `2x` `xy_pod_body.stl`
 - `2x` `xy_pod_ballast_lid.stl`
 - `2x` `xy_pod_motor_plate_nema17.stl`
@@ -75,12 +79,21 @@ Optional preview/check parts:
 - `x_drive_preview.stl`
 - `y_drive_preview.stl`
 
+Clamp strategy for the knob pulleys:
+
+- rigid outer shell in `PLA` or `PETG`
+- separate inner liner halves in `TPU`
+- liner bore intentionally undersized relative to the knob
+- shell bore sized to compress the liner against the knurled knob
+- built-in bolt-head and hex-nut pockets for clamp preload
+
 ## Hardware Assumptions
 
 - `2x NEMA17` motors
 - `2x GT2 20T metal pulleys`, `5 mm` bore
 - `GT2 6 mm` belt
 - `M3` screws for motor mounting
+- `3x M3 socket-head screws + 3x M3 hex nuts` for each knob pulley
 - `M5` or `M6` bolts/washers/nuts for plate-to-tower mounting
 - dense ballast for each pod base
   - steel blocks
@@ -100,6 +113,16 @@ That is why the pod uses:
 
 - an adjustable motor plate height
 - freestanding placement instead of microscope-side attachment
+
+## Pulley Notes
+
+These pulleys are intentionally more aggressive than the first pass:
+
+- clamp preload comes from `3` through-bolts
+- the compliant liner is meant to conform into the knurling
+- the liner can be printed in `TPU 95A` or used as a template for cut sheet rubber
+
+This should be substantially more trustworthy than the earlier smooth-bore friction clamp.
 
 ## Likely Next Refinements
 
