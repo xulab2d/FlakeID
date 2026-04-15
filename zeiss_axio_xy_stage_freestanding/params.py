@@ -57,9 +57,8 @@ class CompliantClampPulleyParams:
     outer_d_mm: float
     body_height_mm: float = 22.0
     flange_height_mm: float = 14.0
-    liner_radial_thickness_mm: float = 1.4
-    liner_inner_preload_mm: float = 0.8
-    rigid_bore_clearance_mm: float = 0.6
+    liner_nominal_thickness_mm: float = 1.0
+    rigid_bore_clearance_mm: float = 0.3
     split_gap_mm: float = 1.4
     ear_width_mm: float = 12.0
     ear_depth_mm: float = 9.0
@@ -69,7 +68,6 @@ class CompliantClampPulleyParams:
     clamp_nut_width_mm: float = 6.2
     clamp_nut_depth_mm: float = 3.2
     clamp_z_fracs: tuple[float, ...] = (0.2, 0.5, 0.8)
-    liner_relief_gap_mm: float = 0.9
 
 
 HEIGHTS = MeasuredHeights()

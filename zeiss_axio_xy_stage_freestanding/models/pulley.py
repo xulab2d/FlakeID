@@ -8,25 +8,22 @@ from zeiss_axio_xy_stage_freestanding.params import CompliantClampPulleyParams
 
 def _half_boxes(params: CompliantClampPulleyParams) -> tuple[cq.Workplane, cq.Workplane]:
     envelope = params.outer_d_mm + 50.0
+    half_width = envelope / 2.0
     left_box = (
         cq.Workplane("XY")
-        .box(envelope, envelope, params.body_height_mm + 6.0)
-        .translate((-(envelope / 4.0), 0.0, params.body_height_mm / 2.0))
+        .box(half_width, envelope, params.body_height_mm + 6.0)
+        .translate((-(half_width / 2.0), 0.0, params.body_height_mm / 2.0))
     )
     right_box = (
         cq.Workplane("XY")
-        .box(envelope, envelope, params.body_height_mm + 6.0)
-        .translate(((envelope / 4.0), 0.0, params.body_height_mm / 2.0))
+        .box(half_width, envelope, params.body_height_mm + 6.0)
+        .translate(((half_width / 2.0), 0.0, params.body_height_mm / 2.0))
     )
     return left_box, right_box
 
 
 def _rigid_bore_diameter(params: CompliantClampPulleyParams) -> float:
-    return params.knob_d_mm + (2.0 * params.liner_radial_thickness_mm) + params.rigid_bore_clearance_mm
-
-
-def _liner_inner_diameter(params: CompliantClampPulleyParams) -> float:
-    return params.knob_d_mm - params.liner_inner_preload_mm
+    return params.knob_d_mm + (2.0 * params.liner_nominal_thickness_mm) + params.rigid_bore_clearance_mm
 
 
 def build_compliant_clamp_pulley(params: CompliantClampPulleyParams, assembly_name: str) -> cq.Assembly:
@@ -88,34 +85,12 @@ def build_compliant_clamp_pulley(params: CompliantClampPulleyParams, assembly_na
         )
         rigid = rigid.cut(hole).cut(head_pocket).cut(nut_pocket)
 
-    liner_outer = (
-        cq.Workplane("XY")
-        .circle((_rigid_bore_diameter(params) - 0.3) / 2.0)
-        .extrude(params.body_height_mm)
-    )
-    liner_inner = (
-        cq.Workplane("XY")
-        .circle(_liner_inner_diameter(params) / 2.0)
-        .extrude(params.body_height_mm + 2.0)
-        .translate((0.0, 0.0, -1.0))
-    )
-    liner_split = (
-        cq.Workplane("XY")
-        .box(_rigid_bore_diameter(params) + 8.0, params.liner_relief_gap_mm, params.body_height_mm + 2.0)
-        .translate((0.0, 0.0, params.body_height_mm / 2.0))
-    )
-    liner = liner_outer.cut(liner_inner).cut(liner_split)
-
     left_box, right_box = _half_boxes(params)
     rigid_left = rigid.intersect(left_box)
     rigid_right = rigid.intersect(right_box)
-    liner_left = liner.intersect(left_box)
-    liner_right = liner.intersect(right_box)
 
     asm = cq.Assembly(name=assembly_name)
-    sep = params.outer_d_mm * 0.82
-    asm.add(rigid_left.translate((-sep, 0.0, 0.0)), name="rigid_left_half")
-    asm.add(rigid_right.translate((sep, 0.0, 0.0)), name="rigid_right_half")
-    asm.add(liner_left.translate((-sep * 0.35, params.outer_d_mm * 0.95, 0.0)), name="liner_left_half")
-    asm.add(liner_right.translate((sep * 0.35, params.outer_d_mm * 0.95, 0.0)), name="liner_right_half")
+    sep = params.outer_d_mm * 0.62
+    asm.add(rigid_left.translate((-sep, 0.0, 0.0)), name="left_half")
+    asm.add(rigid_right.translate((sep, 0.0, 0.0)), name="right_half")
     return asm

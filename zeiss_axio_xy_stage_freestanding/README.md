@@ -35,7 +35,7 @@ Those ranges are intentionally loose because the exact usable belt plane depends
 
 This project uses:
 
-- `custom rigid-shell + compliant-liner clamp pulleys` for the Zeiss Axio `X/Y` knobs
+- `custom rigid clamp pulleys sized for a cut compliant liner` for the Zeiss Axio `X/Y` knobs
 - `custom freestanding weighted motor pods` with adjustable motor height
 - `donor STL references` for `NEMA17` motor mount and pulley/gear proportions
 
@@ -63,14 +63,10 @@ The pod concept is deliberately simple:
 
 Print:
 
-- `1x` `axio_x_knob_pulley_rigid_left_half.stl`
-- `1x` `axio_x_knob_pulley_rigid_right_half.stl`
-- `1x` `axio_x_knob_pulley_liner_left_half.stl` in `TPU`
-- `1x` `axio_x_knob_pulley_liner_right_half.stl` in `TPU`
-- `1x` `axio_y_knob_pulley_rigid_left_half.stl`
-- `1x` `axio_y_knob_pulley_rigid_right_half.stl`
-- `1x` `axio_y_knob_pulley_liner_left_half.stl` in `TPU`
-- `1x` `axio_y_knob_pulley_liner_right_half.stl` in `TPU`
+- `1x` `axio_x_knob_pulley_left_half.stl`
+- `1x` `axio_x_knob_pulley_right_half.stl`
+- `1x` `axio_y_knob_pulley_left_half.stl`
+- `1x` `axio_y_knob_pulley_right_half.stl`
 - `2x` `xy_pod_body.stl`
 - `2x` `xy_pod_ballast_lid.stl`
 - `2x` `xy_pod_motor_plate_nema17.stl`
@@ -82,10 +78,10 @@ Optional preview/check parts:
 
 Clamp strategy for the knob pulleys:
 
-- rigid outer shell in `PLA` or `PETG`
-- separate inner liner halves in `TPU`
-- liner bore intentionally undersized relative to the knob
-- shell bore sized to compress the liner against the knurled knob
+- rigid clamp shell in `PLA` or `PETG`
+- cut strip liner material by hand and place it inside the bore
+- shell bore sized for roughly `1 mm` liner thickness
+- clamp preload compresses the liner against the knurled knob
 - built-in bolt-head and hex-nut pockets for clamp preload
 
 Pod adjustment / wiring strategy:
@@ -129,10 +125,24 @@ That is why the pod uses:
 These pulleys are intentionally more aggressive than the first pass:
 
 - clamp preload comes from `3` through-bolts
-- the compliant liner is meant to conform into the knurling
-- the liner can be printed in `TPU 95A` or used as a template for cut sheet rubber
+- a cut compliant liner is meant to conform into the knurling
+- the printed pulley is just the rigid clamp shell
 
 This should be substantially more trustworthy than the earlier smooth-bore friction clamp.
+
+Recommended liner material:
+
+- best first choice: `1/32 in` or `1.0 mm` adhesive-backed `nitrile` or `polyurethane` rubber sheet
+- acceptable fallback: thin adhesive-backed `neoprene`
+
+What to avoid:
+
+- very soft foam
+- cork
+- very slick silicone sheet
+- anything thicker than about `1.5 mm` on the first pass
+
+The goal is a thin, high-friction, slightly compliant layer, not a squishy cushion.
 
 ## Motor Wiring
 
