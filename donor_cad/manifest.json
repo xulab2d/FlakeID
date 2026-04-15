@@ -1,0 +1,167 @@
+{
+  "target_platform": "Zeiss Axio manual microscope retrofit",
+  "sources": [
+    {
+      "id": "uc2_motorized_xy_table",
+      "upstream_repo": "https://github.com/openUC2/UC2-Motorized-XY-Table",
+      "license_file": "uc2_motorized_xy_table/LICENSE",
+      "notes": "Primary donor for XY motor mount, gears, and pulley layout.",
+      "files": [
+        {
+          "path": "uc2_motorized_xy_table/stl/Assembly_XYTable_Aliepexress_30_XYTable_Aliexpress_motormount_4.stl",
+          "class": "fork_and_modify",
+          "role": "nema17_xy_motor_mount"
+        },
+        {
+          "path": "uc2_motorized_xy_table/stl/Assembly_XYTable_Aliepexress_00_XYTable_large_gear_29.stl",
+          "class": "fork_and_modify",
+          "role": "large_belt_gear"
+        },
+        {
+          "path": "uc2_motorized_xy_table/stl/Assembly_XYTable_Aliepexress_00_XYTable_medium_gear_27.stl",
+          "class": "fork_and_modify",
+          "role": "medium_belt_gear"
+        },
+        {
+          "path": "uc2_motorized_xy_table/stl/Assembly_XYTable_Aliepexress_00_XYTable_pulley_28.stl",
+          "class": "fork_and_modify",
+          "role": "knob_pulley_reference"
+        },
+        {
+          "path": "uc2_motorized_xy_table/stl/Assembly_XYTable_Aliepexress_00_XYTable_pulley_30.stl",
+          "class": "fork_and_modify",
+          "role": "knob_pulley_reference_alt"
+        },
+        {
+          "path": "uc2_motorized_xy_table/inventor/30_XYTable_Aliexpress_motormount.ipt",
+          "class": "fork_and_modify",
+          "role": "editable_motor_mount"
+        },
+        {
+          "path": "uc2_motorized_xy_table/inventor/00_XYTable_large_gear.ipt",
+          "class": "fork_and_modify",
+          "role": "editable_large_gear"
+        },
+        {
+          "path": "uc2_motorized_xy_table/inventor/00_XYTable_medium_gear.ipt",
+          "class": "fork_and_modify",
+          "role": "editable_medium_gear"
+        },
+        {
+          "path": "uc2_motorized_xy_table/inventor/00_XYTable_pulley.ipt",
+          "class": "fork_and_modify",
+          "role": "editable_knob_pulley"
+        },
+        {
+          "path": "uc2_motorized_xy_table/inventor/Assembly_XYTable_Aliepexress.iam",
+          "class": "reference_only",
+          "role": "full_xy_assembly"
+        }
+      ]
+    },
+    {
+      "id": "uc2_micronstage",
+      "upstream_repo": "https://github.com/openUC2/UC2-MicronStage",
+      "license_file": null,
+      "notes": "Best donor for motorized micrometer/focus-style drive parts.",
+      "files": [
+        {
+          "path": "uc2_micronstage/stl/Assembly_XY_stage_with_motors_v3_30_Mount_Nema_Motor_attachement_for_XYstage_v3.stl",
+          "class": "fork_and_modify",
+          "role": "compact_motor_mount"
+        },
+        {
+          "path": "uc2_micronstage/stl/Assembly_XY_stage_with_motors_v3_cellSTORM_UC2_motorized_micrometer_gear1_2.stl",
+          "class": "fork_and_modify",
+          "role": "focus_gear_1"
+        },
+        {
+          "path": "uc2_micronstage/stl/Assembly_XY_stage_with_motors_v3_cellSTORM_UC2_motorized_micrometer_gear2_1.stl",
+          "class": "fork_and_modify",
+          "role": "focus_gear_2"
+        },
+        {
+          "path": "uc2_micronstage/stl/Assembly_XY_stage_with_motors_v3_cellSTORM_UC2_motorized_micrometer_motormount_1.stl",
+          "class": "fork_and_modify",
+          "role": "focus_motor_mount"
+        },
+        {
+          "path": "uc2_micronstage/inventor/30_Mount_Nema_Motor_attachement_for_XYstage_v3.ipt",
+          "class": "fork_and_modify",
+          "role": "editable_compact_motor_mount"
+        },
+        {
+          "path": "uc2_micronstage/inventor/cellSTORM_UC2_motorized_micrometer_gear1.ipt",
+          "class": "fork_and_modify",
+          "role": "editable_focus_gear_1"
+        },
+        {
+          "path": "uc2_micronstage/inventor/cellSTORM_UC2_motorized_micrometer_gear2.ipt",
+          "class": "fork_and_modify",
+          "role": "editable_focus_gear_2"
+        },
+        {
+          "path": "uc2_micronstage/inventor/cellSTORM_UC2_motorized_micrometer_motormount.ipt",
+          "class": "fork_and_modify",
+          "role": "editable_focus_motor_mount"
+        }
+      ]
+    },
+    {
+      "id": "puma",
+      "upstream_repo": "https://github.com/TadPath/PUMA",
+      "license_file": "puma/LICENSE",
+      "notes": "Useful for focus gears, z-motor concept, and quick-release references.",
+      "files": [
+        {
+          "path": "puma/freecad/Focus_Gears.FCStd",
+          "class": "fork_and_modify",
+          "role": "focus_gear_reference"
+        },
+        {
+          "path": "puma/freecad/Z_Motor.FCStd",
+          "class": "fork_and_modify",
+          "role": "z_motor_mount_reference"
+        },
+        {
+          "path": "puma/freecad/QuickRelease_v2.0.FCStd",
+          "class": "reference_only",
+          "role": "quick_release_reference"
+        },
+        {
+          "path": "puma/freecad/XY_Stabiliser.FCStd",
+          "class": "reference_only",
+          "role": "xy_stabilizer_reference"
+        },
+        {
+          "path": "puma/freecad/CNC_Stage_1.FCStd",
+          "class": "reference_only",
+          "role": "cnc_stage_reference"
+        },
+        {
+          "path": "puma/freecad/CNC_Stage_2.FCStd",
+          "class": "reference_only",
+          "role": "cnc_stage_reference"
+        },
+        {
+          "path": "puma/freecad/CNC_Stage_3.FCStd",
+          "class": "reference_only",
+          "role": "cnc_stage_reference"
+        },
+        {
+          "path": "puma/freecad/Stage.FCStd",
+          "class": "reference_only",
+          "role": "stage_body_reference"
+        }
+      ]
+    }
+  ],
+  "missing_sources": [
+    {
+      "id": "openflexure",
+      "status": "not_pulled",
+      "reason": "Direct GitHub clone failed in this environment",
+      "notes": "Use as design reference later for generic focus/coupler ideas if needed."
+    }
+  ]
+}

@@ -8,5 +8,6 @@ __pycache__/
 .cache/
 runs/
 tmp_demo_tiles/
+_donor_repos/
 data/manifests/*.json
 data/manifests/*.coco.json
