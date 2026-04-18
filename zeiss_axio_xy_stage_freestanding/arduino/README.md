@@ -6,6 +6,8 @@ This folder is for quick `XY-only` motion bring-up on the `Zeiss Axio` freestand
 
 - `axio_xy_serial_jogger/axio_xy_serial_jogger.ino`
   - minimal serial command sketch for `Arduino Uno + CNC Shield V3 + DRV8825`
+- `GRBL_BRINGUP.md`
+  - shortest path from the temporary jog sketch to `GRBL`
 
 ## Recommendation
 
