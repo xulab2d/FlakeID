@@ -63,6 +63,8 @@ The pod concept is deliberately simple:
   - upstream donor STL files gathered for comparison
 - `MINIMAL_BUY_LIST.md`
   - minimal purchased-part list for the first `XY-only` build
+- `arduino/`
+  - quick bring-up sketch and notes for `Uno + CNC Shield V3`
 
 Concept sketch:
 
