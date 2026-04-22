@@ -6,9 +6,17 @@ param(
 
     [string[]]$Command = @(),
 
+    [string]$CommandBase64 = "",
+
     [int]$StartupDelayMs = 1200,
 
+    [bool]$DtrEnable = $false,
+
+    [bool]$RtsEnable = $false,
+
     [int]$TimeoutMs = 2000,
+
+    [string]$WaitForBase64 = "",
 
     [string]$WaitFor = "ok"
 )
@@ -16,12 +24,21 @@ param(
 $serial = $null
 
 try {
+    if ($CommandBase64) {
+        $decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($CommandBase64))
+        $Command = @($decoded)
+    }
+
+    if ($WaitForBase64) {
+        $WaitFor = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($WaitForBase64))
+    }
+
     $serial = New-Object System.IO.Ports.SerialPort $Port, $Baud, ([System.IO.Ports.Parity]::None), 8, ([System.IO.Ports.StopBits]::One)
     $serial.NewLine = "`n"
     $serial.ReadTimeout = 250
     $serial.WriteTimeout = 1000
-    $serial.DtrEnable = $true
-    $serial.RtsEnable = $true
+    $serial.DtrEnable = $DtrEnable
+    $serial.RtsEnable = $RtsEnable
     $serial.Open()
 
     Start-Sleep -Milliseconds $StartupDelayMs
@@ -34,7 +51,12 @@ try {
     }
 
     foreach ($line in $Command) {
-        $serial.Write($line + "`r`n")
+        if ($line -eq "?") {
+            $serial.Write("?")
+        }
+        else {
+            $serial.Write($line + "`n")
+        }
         Start-Sleep -Milliseconds 40
     }
 

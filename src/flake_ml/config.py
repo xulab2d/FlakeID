@@ -13,6 +13,12 @@ class MotionConfig:
     baud: int = 115200
     travel_rate_um_s: float = 2500.0
     settle_time_ms: int = 250
+    startup_delay_ms: int = 500
+    jog_feed_mm_min: float = 30.0
+    x_max_rate_mm_min: float | None = None
+    y_max_rate_mm_min: float | None = None
+    x_accel_mm_s2: float | None = None
+    y_accel_mm_s2: float | None = None
     min_x_um: float = 0.0
     min_y_um: float = 0.0
     max_x_um: float | None = None

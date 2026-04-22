@@ -28,6 +28,7 @@ It also leaves clean interfaces for stronger models and remote training later.
 - [docs/bringup_checklist.md](docs/bringup_checklist.md)
 - [docs/scanning_protocol.md](docs/scanning_protocol.md)
 - [docs/stage_bounds_protocol.md](docs/stage_bounds_protocol.md)
+- [docs/stage_calibration_ui.md](docs/stage_calibration_ui.md)
 - [docs/hardware_probe_notes.md](docs/hardware_probe_notes.md)
 - [docs/repo_push_setup.md](docs/repo_push_setup.md)
 - [configs/lab.example.toml](configs/lab.example.toml)
@@ -51,6 +52,13 @@ Create a scan plan:
   --width-mm 8 `
   --height-mm 8 `
   --output outputs/scan_plan.json
+```
+
+Open the stage calibration UI:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli stage-ui `
+  --config configs/lab.example.toml
 ```
 
 Detect candidates in one image:

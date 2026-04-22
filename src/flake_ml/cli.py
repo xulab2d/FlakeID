@@ -16,6 +16,7 @@ from .learning.gmm import GaussianMixtureModel
 from .models import ScanTile, StagePosition
 from .processing.preprocess import build_flat_field, load_image
 from .scanning.planner import build_serpentine_plan
+from .ui.stage_calibrator import launch_stage_calibration_ui
 from .utils import normalize_vector
 
 
@@ -188,6 +189,10 @@ def command_export_coco(args: argparse.Namespace) -> None:
     )
 
 
+def command_stage_ui(args: argparse.Namespace) -> None:
+    launch_stage_calibration_ui(args.config)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Automated flake discovery starter CLI.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -225,6 +230,10 @@ def build_parser() -> argparse.ArgumentParser:
     export.add_argument("--output", required=True)
     export.add_argument("--score-threshold", type=float, default=0.0)
     export.set_defaults(func=command_export_coco)
+
+    stage_ui = subparsers.add_parser("stage-ui", help="Open the interactive stage calibration UI.")
+    stage_ui.add_argument("--config", required=True)
+    stage_ui.set_defaults(func=command_stage_ui)
 
     return parser
 
