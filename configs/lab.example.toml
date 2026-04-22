@@ -7,6 +7,11 @@ port = "COM3"
 baud = 115200
 travel_rate_um_s = 2500.0
 settle_time_ms = 250
+min_x_um = 0.0
+min_y_um = 0.0
+max_x_um = 180000.0
+max_y_um = 180000.0
+safety_margin_um = 1000.0
 
 [camera]
 driver = "external_command"
@@ -43,4 +48,3 @@ oxide_thickness_nm = 90.0
 process = "dry"
 recommended_clusters = 5
 notes = "hBN on 90 nm oxide often has stronger optical contrast than on 285 nm, but local lamp spectrum and camera color response still dominate exact thresholds."
-

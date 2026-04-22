@@ -25,6 +25,45 @@ def _write_json(path: str | Path, payload: dict) -> None:
     target.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
+def _validate_tiles_within_bounds(tiles: list[ScanTile], args: argparse.Namespace, config) -> None:
+    max_x_um = config.motion.max_x_um
+    max_y_um = config.motion.max_y_um
+    min_x_um = config.motion.min_x_um
+    min_y_um = config.motion.min_y_um
+    margin_um = config.motion.safety_margin_um
+
+    if max_x_um is None or max_y_um is None:
+        return
+
+    planned_max_x = max(tile.position.x_um for tile in tiles)
+    planned_max_y = max(tile.position.y_um for tile in tiles)
+    planned_min_x = min(tile.position.x_um for tile in tiles)
+    planned_min_y = min(tile.position.y_um for tile in tiles)
+
+    safe_max_x = max_x_um - margin_um
+    safe_max_y = max_y_um - margin_um
+    safe_min_x = min_x_um
+    safe_min_y = min_y_um
+
+    failures: list[str] = []
+    if planned_min_x < safe_min_x:
+        failures.append(f"planned minimum X {planned_min_x:.1f} um is below safe minimum {safe_min_x:.1f} um")
+    if planned_min_y < safe_min_y:
+        failures.append(f"planned minimum Y {planned_min_y:.1f} um is below safe minimum {safe_min_y:.1f} um")
+    if planned_max_x > safe_max_x:
+        failures.append(f"planned maximum X {planned_max_x:.1f} um exceeds safe maximum {safe_max_x:.1f} um")
+    if planned_max_y > safe_max_y:
+        failures.append(f"planned maximum Y {planned_max_y:.1f} um exceeds safe maximum {safe_max_y:.1f} um")
+
+    if failures:
+        joined = "; ".join(failures)
+        raise ValueError(
+            "Scan plan falls outside configured safe motion bounds. "
+            "Update motion.max_x_um / motion.max_y_um after bound finding, or reduce the scan region. "
+            f"Details: {joined}"
+        )
+
+
 def _overlay_candidates(image_path: str | Path, candidates: Iterable, output_path: str | Path) -> None:
     image = Image.open(image_path).convert("RGB")
     draw = ImageDraw.Draw(image)
@@ -49,6 +88,7 @@ def command_scan_plan(args: argparse.Namespace) -> None:
         origin_x_um=config.scan.origin_x_um,
         origin_y_um=config.scan.origin_y_um,
     )
+    _validate_tiles_within_bounds(tiles, args, config)
     payload = {
         "count": len(tiles),
         "tiles": [tile.to_dict() for tile in tiles],

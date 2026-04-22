@@ -27,6 +27,7 @@ It also leaves clean interfaces for stronger models and remote training later.
 - [docs/data_and_human_loop.md](docs/data_and_human_loop.md)
 - [docs/bringup_checklist.md](docs/bringup_checklist.md)
 - [docs/scanning_protocol.md](docs/scanning_protocol.md)
+- [docs/stage_bounds_protocol.md](docs/stage_bounds_protocol.md)
 - [docs/hardware_probe_notes.md](docs/hardware_probe_notes.md)
 - [docs/repo_push_setup.md](docs/repo_push_setup.md)
 - [configs/lab.example.toml](configs/lab.example.toml)

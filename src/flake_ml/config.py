@@ -13,6 +13,11 @@ class MotionConfig:
     baud: int = 115200
     travel_rate_um_s: float = 2500.0
     settle_time_ms: int = 250
+    min_x_um: float = 0.0
+    min_y_um: float = 0.0
+    max_x_um: float | None = None
+    max_y_um: float | None = None
+    safety_margin_um: float = 500.0
 
 
 @dataclass(slots=True)
@@ -92,4 +97,3 @@ def load_lab_config(path: str | Path) -> LabConfig:
         detector=detector,
         substrates=substrates,
     )
-
