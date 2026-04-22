@@ -1,0 +1,46 @@
+[lab]
+name = "Zeiss Axio Imager A2m"
+
+[motion]
+driver = "grbl"
+port = "COM3"
+baud = 115200
+travel_rate_um_s = 2500.0
+settle_time_ms = 250
+
+[camera]
+driver = "external_command"
+output_extension = ".jpg"
+capture_command = "Write-Error 'Set camera.capture_command in configs/lab.toml to a real Canon capture command.'"
+
+[scan]
+fov_width_um = 260.0
+fov_height_um = 195.0
+overlap_fraction = 0.12
+origin_x_um = 0.0
+origin_y_um = 0.0
+
+[detector]
+min_area_px = 80
+max_area_px = 350000
+contrast_sigma = 2.8
+saturation_sigma = 2.1
+edge_sigma = 1.8
+border_crop_px = 8
+open_iterations = 1
+close_iterations = 2
+
+[substrates.graphene_285_wet]
+material = "graphene"
+oxide_thickness_nm = 285.0
+process = "wet"
+recommended_clusters = 4
+notes = "Start with monolayer-plus-few-layer ranking. Color priors depend strongly on illumination and white balance, so collect local calibration images first."
+
+[substrates.hbn_90_dry]
+material = "hbn"
+oxide_thickness_nm = 90.0
+process = "dry"
+recommended_clusters = 5
+notes = "hBN on 90 nm oxide often has stronger optical contrast than on 285 nm, but local lamp spectrum and camera color response still dominate exact thresholds."
+

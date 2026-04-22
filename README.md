@@ -1,88 +1,92 @@
-# flakefinder_lab
+# FlakeID
 
-Deployable MVP for automated 2D material flake discovery on motorized microscopes, with a first-class offline folder mode so the lab can build datasets and validate detection before hardware integration is complete.
+`flake-ml` is the starter software stack inside `FlakeID`, a research-backed framework for automated optical discovery of exfoliated 2D material flakes on a motorized microscope. It is designed around your current setup:
 
-## Scope
+- Microscope: Zeiss AXIO Imager.A2m
+- Motion: Arduino UNO + CNC shield running GRBL
+- Camera: Canon DS126571 over USB
+- Primary materials:
+  - graphene on 285 nm Si/SiO2 (wet)
+  - hBN on 90 nm Si/SiO2 (dry)
 
-- Primary targets: `bn90_hbn` and `gr285_graphene`
-- MVP target platform: motorized glovebox microscope
-- Phase-1 runtime path: folder-based detection and mock scanning
-- Phase-2 runtime path: Micro-Manager-backed hardware control
-- Training path: COCO-centric dataset export plus manifest/bootstrap tooling for lab-specific retraining
+This repository focuses on the parts we can build immediately on the local workstation:
 
-## Selected upstream references
+- serpentine scan planning
+- GRBL integration hooks
+- flat-field and background correction
+- lightweight flake-candidate detection on CPU
+- scan cataloging and COCO export for future training
+- a practical data and human-in-the-loop plan
 
-- `2DMatGMM`: baseline detector/classifier behind a wrapper
-- `2DMatGMM-System`: parameter/workflow reference only
-- `pycro-manager`: Micro-Manager integration path
-- `MaskTerial`: future pluggable detector branch for low-contrast materials such as hBN
-- `hBN_Detection`: phase-2/phase-3 hBN-specific reference
+It also leaves clean interfaces for stronger models and remote training later.
 
-## Install
+## Repository Layout
 
-```bash
-cd flakefinder_lab
-python3.10 -m venv .venv
-source .venv/bin/activate
-pip install -e .[dev]
+- [docs/research_review.md](docs/research_review.md)
+- [docs/system_architecture.md](docs/system_architecture.md)
+- [docs/data_and_human_loop.md](docs/data_and_human_loop.md)
+- [docs/bringup_checklist.md](docs/bringup_checklist.md)
+- [docs/scanning_protocol.md](docs/scanning_protocol.md)
+- [docs/hardware_probe_notes.md](docs/hardware_probe_notes.md)
+- [docs/repo_push_setup.md](docs/repo_push_setup.md)
+- [configs/lab.example.toml](configs/lab.example.toml)
+- [scripts/grbl_send.ps1](scripts/grbl_send.ps1)
+- `src/flake_ml`: package code
+- `tests`: lightweight regression tests
+
+## Quick Start
+
+Use the bundled Python runtime already available on this machine:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli --help
 ```
 
-Optional hardware support:
+Create a scan plan:
 
-```bash
-pip install -e .[hardware]
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli scan-plan `
+  --config configs/lab.example.toml `
+  --width-mm 8 `
+  --height-mm 8 `
+  --output outputs/scan_plan.json
 ```
 
-Optional upstream baseline detector stack:
+Detect candidates in one image:
 
-```bash
-pip install -e .[baseline]
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli detect-image `
+  path\to\image.jpg `
+  --config configs/lab.example.toml `
+  --output-json outputs\image_candidates.json `
+  --overlay outputs\image_overlay.png
 ```
 
-Bootstrap the requested external repos if needed:
+Replay a folder of microscope images into a catalog:
 
-```bash
-./bootstrap_repos.sh
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli replay-folder `
+  path\to\images `
+  --config configs/lab.example.toml `
+  --catalog outputs\flakes.db `
+  --sample-id graphene_trial_001 `
+  --material graphene
 ```
 
-## Quickstart
+Export reviewed candidates to COCO:
 
-Folder-based detection:
-
-```bash
-flakefinder detect-folder \
-  --config configs/bn90_hbn.yaml \
-  --input /path/to/images \
-  --output runs/bn90_demo
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli export-coco `
+  --catalog outputs\flakes.db `
+  --output outputs\coco_candidates.json
 ```
 
-Mock scan over a folder-backed tile set:
+## What This Does Not Yet Solve
 
-```bash
-flakefinder mock-scan \
-  --config configs/mock_bn90_hbn.yaml \
-  --input /path/to/mock_tiles \
-  --output runs/mock_scan
-```
+- autofocus for Z
+- direct Canon tether capture without a configured external capture command
+- robust multilayer thickness regression
+- remote model training orchestration
+- scan-time stitch mosaics
 
-Export candidates:
-
-```bash
-flakefinder export-candidates \
-  --run runs/mock_scan \
-  --format csv
-```
-
-Bootstrap a training manifest:
-
-```bash
-flakefinder train-bootstrap \
-  --manifest data/manifests/bn90_hbn.json
-```
-
-## Notes
-
-- The code runs without physical hardware via `MockHardware`.
-- RAW/16-bit paths are preserved in metadata; previews and thumbnails are generated separately.
-- The `2DMatGMM` wrapper tries to use the cloned upstream repo when available. Install `.[baseline]` to satisfy the common upstream ML dependencies. If the upstream import or model path is unavailable, it falls back to a deterministic heuristic detector so the pipeline remains runnable.
-- hBN support is scaffolded for retraining and ranking immediately, but final production performance will depend on collecting lab-specific hBN data.
+Those are all outlined in the docs as the next build stages.
