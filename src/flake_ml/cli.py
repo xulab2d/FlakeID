@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import subprocess
 from typing import Iterable
 
 import numpy as np
@@ -16,7 +17,6 @@ from .learning.gmm import GaussianMixtureModel
 from .models import ScanTile, StagePosition
 from .processing.preprocess import build_flat_field, load_image
 from .scanning.planner import build_serpentine_plan
-from .ui.stage_calibrator import launch_stage_calibration_ui
 from .utils import normalize_vector
 
 
@@ -190,7 +190,19 @@ def command_export_coco(args: argparse.Namespace) -> None:
 
 
 def command_stage_ui(args: argparse.Namespace) -> None:
-    launch_stage_calibration_ui(args.config)
+    launcher = Path(__file__).resolve().parents[2] / "scripts" / "stage_calibration_ui.ps1"
+    subprocess.Popen(
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(launcher),
+            "-Config",
+            str(Path(args.config).resolve()),
+        ]
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
