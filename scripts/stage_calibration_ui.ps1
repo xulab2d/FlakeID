@@ -350,10 +350,15 @@ function Invoke-Jog {
         $feed = [double]$feedBox.Text
         $dxMm = ($XDirection * $stepUm) / 1000.0
         $dyMm = ($YDirection * $stepUm) / 1000.0
-        $line = [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, "G21 G91 G0 X{0:0.####} Y{1:0.####} F{2:0.##}", $dxMm, $dyMm, $feed)
-        $response = Invoke-GrblLines -Port $port -Baud $baud -StartupDelayMs $startupDelayMs -Lines @($line) -WaitFor "ok" -TimeoutMs 6000
+        $line = [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, "G0 X{0:0.####} Y{1:0.####} F{2:0.##}", $dxMm, $dyMm, $feed)
+        $response = Invoke-GrblLines -Port $port -Baud $baud -StartupDelayMs $startupDelayMs -Lines @("G21", "G91", $line) -WaitFor "ok" -TimeoutMs 6000
         if ($response) {
-            $rawBox.Text = $response.Trim()
+            if ($response -match "error: Expected command letter" -and $response -match "ok") {
+                $rawBox.Text = "Controller accepted the jog, but also emitted a stray parse warning:`r`n$($response.Trim())"
+            }
+            else {
+                $rawBox.Text = $response.Trim()
+            }
         }
         Refresh-Status
     }
@@ -370,10 +375,10 @@ function Apply-ControllerSettings {
         $yAccelValue = [double]$yAccelBox.Text
 
         $responses = @()
-        $responses += Invoke-GrblLines -Port $port -Baud $baud -StartupDelayMs $startupDelayMs -Lines @("$110=$xRateValue") -WaitFor "ok" -TimeoutMs 4000
-        $responses += Invoke-GrblLines -Port $port -Baud $baud -StartupDelayMs $startupDelayMs -Lines @("$111=$yRateValue") -WaitFor "ok" -TimeoutMs 4000
-        $responses += Invoke-GrblLines -Port $port -Baud $baud -StartupDelayMs $startupDelayMs -Lines @("$120=$xAccelValue") -WaitFor "ok" -TimeoutMs 4000
-        $responses += Invoke-GrblLines -Port $port -Baud $baud -StartupDelayMs $startupDelayMs -Lines @("$121=$yAccelValue") -WaitFor "ok" -TimeoutMs 4000
+        $responses += Invoke-GrblLines -Port $port -Baud $baud -StartupDelayMs $startupDelayMs -Lines @(('$110={0:0.###}' -f $xRateValue)) -WaitFor "ok" -TimeoutMs 4000
+        $responses += Invoke-GrblLines -Port $port -Baud $baud -StartupDelayMs $startupDelayMs -Lines @(('$111={0:0.###}' -f $yRateValue)) -WaitFor "ok" -TimeoutMs 4000
+        $responses += Invoke-GrblLines -Port $port -Baud $baud -StartupDelayMs $startupDelayMs -Lines @(('$120={0:0.###}' -f $xAccelValue)) -WaitFor "ok" -TimeoutMs 4000
+        $responses += Invoke-GrblLines -Port $port -Baud $baud -StartupDelayMs $startupDelayMs -Lines @(('$121={0:0.###}' -f $yAccelValue)) -WaitFor "ok" -TimeoutMs 4000
         $rawBox.Text = ($responses -join "`r`n").Trim()
     }
     catch {
@@ -474,4 +479,3 @@ if ($SelfTest) {
 }
 
 [void]$form.ShowDialog()
-
