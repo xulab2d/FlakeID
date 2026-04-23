@@ -350,7 +350,7 @@ function Invoke-Jog {
         $feed = [double]$feedBox.Text
         $dxMm = ($XDirection * $stepUm) / 1000.0
         $dyMm = ($YDirection * $stepUm) / 1000.0
-        $line = [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, "G0 X{0:0.####} Y{1:0.####} F{2:0.##}", $dxMm, $dyMm, $feed)
+        $line = [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, "G1 X{0:0.####} Y{1:0.####} F{2:0.##}", $dxMm, $dyMm, $feed)
         $response = Invoke-GrblLines -Port $port -Baud $baud -StartupDelayMs $startupDelayMs -Lines @("G21", "G91", $line) -WaitFor "ok" -TimeoutMs 6000
         if ($response) {
             if ($response -match "error: Expected command letter" -and $response -match "ok") {

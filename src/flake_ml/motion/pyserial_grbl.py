@@ -98,7 +98,7 @@ class PySerialGrblController(MotionController):
         x_mm = x_um / 1000.0
         y_mm = y_um / 1000.0
         feed_mm_min = max((self.travel_rate_um_s * 60.0) / 1000.0, 0.1)
-        self._write_line(f"G0 X{x_mm:.4f} Y{y_mm:.4f} F{feed_mm_min:.2f}")
+        self._write_line(f"G1 X{x_mm:.4f} Y{y_mm:.4f} F{feed_mm_min:.2f}")
         self._read_until("ok")
         self.wait_for_idle()
         self._position = StagePosition(float(x_um), float(y_um))

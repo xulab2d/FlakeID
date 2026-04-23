@@ -9,8 +9,8 @@ Provide a safe manual-control window for boundary mapping and belt-friendly tuni
 From the repo root:
 
 ```powershell
-& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli stage-ui `
-  --config configs/lab.example.toml
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\launch_stage_ui.ps1 `
+  -Config configs/lab.example.toml
 ```
 
 ## What The UI Does
@@ -49,4 +49,5 @@ Then increase only after motion becomes repeatable.
 - Manual knob motion still does not update GRBL coordinates automatically.
 - If you move the stage by hand, re-zero or re-establish your session coordinate reference before trusting the display.
 - `Feed Hold`, `Resume`, and `Soft Reset` are exposed in the UI for bring-up convenience, but use them carefully.
+- Jog motion is sent as feed-controlled `G1`, not `G0` rapids, so the jog-feed field should now have a real effect.
 - On this current GRBL/UNO path, writing controller settings works more reliably than reading them back. Treat the UI fields as the intended values and verify by actual stage behavior.
