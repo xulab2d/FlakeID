@@ -205,6 +205,9 @@ def run_capture_scan(
     catalog_path = session_dir / "scan_catalog.db"
     log_path = logs_dir / "scan.log.jsonl"
     plan_path = qc_dir / "scan_plan.json"
+    hot_folder = resolve_path(config.camera.incoming_dir or "photos/incoming", base_dir=repo_root)
+    step_x_um = max(config.scan.fov_width_um * (1.0 - config.scan.overlap_fraction), 1.0)
+    step_y_um = max(config.scan.fov_height_um * (1.0 - config.scan.overlap_fraction), 1.0)
 
     tiles = build_scan_tiles_from_roi(
         roi_min_x_um,
@@ -249,21 +252,38 @@ def run_capture_scan(
         log(f"Session: {session_dir}")
         log(f"Planned tiles: {len(tiles)}")
         log(f"Catalog: {catalog_path}")
+        log(
+            "Scan ROI: X={0:.1f}..{1:.1f} um, Y={2:.1f}..{3:.1f} um; "
+            "step size about {4:.1f} x {5:.1f} um".format(
+                min(roi_min_x_um, roi_max_x_um),
+                max(roi_min_x_um, roi_max_x_um),
+                min(roi_min_y_um, roi_max_y_um),
+                max(roi_min_y_um, roi_max_y_um),
+                step_x_um,
+                step_y_um,
+            )
+        )
         if allow_out_of_bounds:
             log("Safe motion bounds are being bypassed for this scan. Proceed carefully.")
         if config.camera.driver.lower().strip() == "watched_folder":
-            hot_folder = resolve_path(config.camera.incoming_dir or "photos/incoming", base_dir=repo_root)
             log(f"Watched incoming folder: {hot_folder}")
             if not config.camera.capture_command.strip():
                 log("No capture command configured; capture will wait for a new file in the watched folder at each tile.")
 
     with log_path.open("a", encoding="utf-8") as handle:
         for tile in tiles:
+            if log:
+                log(
+                    f"Moving to tile {tile.index + 1}/{len(tiles)} "
+                    f"at X={tile.position.x_um:.1f} um, Y={tile.position.y_um:.1f} um"
+                )
             motion.move_abs(tile.position.x_um, tile.position.y_um)
             image_path = tiles_dir / (
                 f"tile_r{tile.row:03d}_c{tile.column:03d}_x{int(round(tile.position.x_um))}_y{int(round(tile.position.y_um))}"
                 f"{config.camera.output_extension}"
             )
+            if log and config.camera.driver.lower().strip() == "watched_folder" and not config.camera.capture_command.strip():
+                log(f"Waiting for a new image in {hot_folder} for tile {tile.index + 1}/{len(tiles)}.")
             captured_path = camera.capture(image_path)
             tile.image_path = str(Path(captured_path).resolve())
             tile.metadata = {
