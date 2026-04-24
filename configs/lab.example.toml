@@ -5,24 +5,28 @@ name = "Zeiss Axio Imager A2m"
 driver = "grbl"
 port = "COM3"
 baud = 115200
-travel_rate_um_s = 2500.0
+travel_rate_um_s = 500
 settle_time_ms = 250
-jog_feed_mm_min = 30.0
+jog_feed_mm_min = 30
 startup_delay_ms = 500
-x_max_rate_mm_min = 60.0
-y_max_rate_mm_min = 60.0
-x_accel_mm_s2 = 2.0
-y_accel_mm_s2 = 2.0
-min_x_um = 0.0
-min_y_um = 0.0
-max_x_um = 180000.0
-max_y_um = 180000.0
-safety_margin_um = 1000.0
+x_max_rate_mm_min = 15
+y_max_rate_mm_min = 15
+x_accel_mm_s2 = 2
+y_accel_mm_s2 = 2
+min_x_um = -776
+min_y_um = -496
+max_x_um = 12616
+max_y_um = 8500
+safety_margin_um = 1000
 
 [camera]
 driver = "external_command"
 output_extension = ".jpg"
 capture_command = "Write-Error 'Set camera.capture_command in configs/lab.toml to a real Canon capture command.'"
+incoming_dir = ""
+watch_timeout_s = 30.0
+watch_stability_ms = 500
+watch_extensions = ".jpg,.jpeg,.png,.tif,.tiff"
 
 [scan]
 fov_width_um = 260.0

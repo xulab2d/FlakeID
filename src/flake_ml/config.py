@@ -31,6 +31,10 @@ class CameraConfig:
     driver: str = "external_command"
     capture_command: str = ""
     output_extension: str = ".jpg"
+    incoming_dir: str = ""
+    watch_timeout_s: float = 30.0
+    watch_stability_ms: int = 500
+    watch_extensions: str = ".jpg,.jpeg,.png,.tif,.tiff"
 
 
 @dataclass(slots=True)

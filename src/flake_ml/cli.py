@@ -9,6 +9,7 @@ from typing import Iterable
 import numpy as np
 from PIL import Image, ImageDraw
 
+from .camera_probe import probe_camera_environment
 from .annotation.coco import export_catalog_to_coco
 from .catalog import CatalogStore
 from .config import load_lab_config
@@ -16,7 +17,9 @@ from .detection.classical import ClassicalFlakeDetector
 from .learning.gmm import GaussianMixtureModel
 from .models import ScanTile, StagePosition
 from .processing.preprocess import build_flat_field, load_image
+from .registration import estimate_overlap_shift_from_paths
 from .scanning.planner import build_serpentine_plan
+from .session import initialize_session
 from .utils import normalize_vector
 
 
@@ -189,6 +192,42 @@ def command_export_coco(args: argparse.Namespace) -> None:
     )
 
 
+def command_camera_probe(args: argparse.Namespace) -> None:
+    payload = probe_camera_environment()
+    if args.output:
+        _write_json(args.output, payload)
+    print(json.dumps(payload, indent=2))
+
+
+def command_init_session(args: argparse.Namespace) -> None:
+    config = load_lab_config(args.config)
+    manifest = initialize_session(
+        output_root=args.output_root,
+        config_path=args.config,
+        config=config,
+        sample_id=args.sample_id,
+        material=args.material,
+        substrate=args.substrate,
+        objective=args.objective,
+        operator=args.operator,
+        notes=args.notes,
+    )
+    print(json.dumps(manifest, indent=2))
+
+
+def command_estimate_shift(args: argparse.Namespace) -> None:
+    estimate = estimate_overlap_shift_from_paths(
+        args.reference_image,
+        args.moving_image,
+        axis=args.axis,
+        overlap_fraction=args.overlap_fraction,
+    )
+    payload = estimate.to_dict()
+    if args.output_json:
+        _write_json(args.output_json, payload)
+    print(json.dumps(payload, indent=2))
+
+
 def command_stage_ui(args: argparse.Namespace) -> None:
     launcher = Path(__file__).resolve().parents[2] / "scripts" / "stage_calibration_ui.ps1"
     subprocess.Popen(
@@ -242,6 +281,32 @@ def build_parser() -> argparse.ArgumentParser:
     export.add_argument("--output", required=True)
     export.add_argument("--score-threshold", type=float, default=0.0)
     export.set_defaults(func=command_export_coco)
+
+    camera_probe = subparsers.add_parser("camera-probe", help="Probe Windows camera connectivity and Canon tooling.")
+    camera_probe.add_argument("--output")
+    camera_probe.set_defaults(func=command_camera_probe)
+
+    init_session = subparsers.add_parser("init-session", help="Create a reproducible data-collection session scaffold.")
+    init_session.add_argument("--config", required=True)
+    init_session.add_argument("--output-root", required=True)
+    init_session.add_argument("--sample-id", required=True)
+    init_session.add_argument("--material", required=True)
+    init_session.add_argument("--substrate", required=True)
+    init_session.add_argument("--objective", required=True)
+    init_session.add_argument("--operator", default="")
+    init_session.add_argument("--notes", default="")
+    init_session.set_defaults(func=command_init_session)
+
+    estimate_shift = subparsers.add_parser(
+        "estimate-shift",
+        help="Estimate residual image shift in the overlap between neighboring microscope tiles.",
+    )
+    estimate_shift.add_argument("reference_image")
+    estimate_shift.add_argument("moving_image")
+    estimate_shift.add_argument("--axis", choices=["x", "y"], required=True)
+    estimate_shift.add_argument("--overlap-fraction", type=float, required=True)
+    estimate_shift.add_argument("--output-json")
+    estimate_shift.set_defaults(func=command_estimate_shift)
 
     stage_ui = subparsers.add_parser("stage-ui", help="Open the interactive stage calibration UI.")
     stage_ui.add_argument("--config", required=True)
