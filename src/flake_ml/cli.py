@@ -11,16 +11,19 @@ from PIL import Image, ImageDraw
 
 from .camera_probe import probe_camera_environment
 from .annotation.coco import export_catalog_to_coco
+from .annotation.manual import export_manual_annotations_to_coco, resolve_review_paths
 from .catalog import CatalogStore
 from .config import load_lab_config
 from .detection.classical import ClassicalFlakeDetector
 from .learning.gmm import GaussianMixtureModel
 from .models import ScanTile, StagePosition
 from .processing.preprocess import build_flat_field, load_image
+from .processing.focus import focus_metrics_for_path
 from .registration import estimate_overlap_shift_from_paths
 from .scanning.planner import build_serpentine_plan
 from .scanning.runtime import run_capture_scan
 from .session import initialize_session
+from .ui.reviewer import launch_manual_review
 from .utils import normalize_vector
 
 
@@ -229,6 +232,20 @@ def command_estimate_shift(args: argparse.Namespace) -> None:
     print(json.dumps(payload, indent=2))
 
 
+def command_focus_score(args: argparse.Namespace) -> None:
+    rows = [focus_metrics_for_path(path, crop_fraction=args.crop_fraction) for path in args.images]
+    rows.sort(key=lambda item: item.get(args.metric, 0.0), reverse=True)
+    payload = {
+        "metric": args.metric,
+        "crop_fraction": args.crop_fraction,
+        "best_image": rows[0]["image_path"] if rows else None,
+        "rows": rows,
+    }
+    if args.output_json:
+        _write_json(args.output_json, payload)
+    print(json.dumps(payload, indent=2))
+
+
 def command_run_scan(args: argparse.Namespace) -> None:
     config = load_lab_config(args.config)
     roi_min_x_um = args.roi_min_x_um if args.roi_min_x_um is not None else config.scan.roi_min_x_um
@@ -284,6 +301,26 @@ def command_stage_ui(args: argparse.Namespace) -> None:
             "-Config",
             str(Path(args.config).resolve()),
         ]
+    )
+
+
+def command_review_images(args: argparse.Namespace) -> None:
+    image_dir, output_path = resolve_review_paths(
+        session_dir=args.session_dir,
+        image_dir=args.image_dir,
+        output_path=args.output,
+    )
+    launch_manual_review(image_dir=image_dir, output_path=output_path)
+
+
+def command_export_manual_coco(args: argparse.Namespace) -> None:
+    payload = export_manual_annotations_to_coco(
+        review_path=args.review_path,
+        output_path=args.output,
+        include_unlabeled_images=args.include_unlabeled_images,
+    )
+    print(
+        f"Exported {len(payload['annotations'])} manual annotations across {len(payload['images'])} images to {args.output}"
     )
 
 
@@ -351,6 +388,16 @@ def build_parser() -> argparse.ArgumentParser:
     estimate_shift.add_argument("--output-json")
     estimate_shift.set_defaults(func=command_estimate_shift)
 
+    focus_score = subparsers.add_parser(
+        "focus-score",
+        help="Score one or more images with autofocus metrics such as Tenengrad and Laplacian variance.",
+    )
+    focus_score.add_argument("images", nargs="+")
+    focus_score.add_argument("--metric", default="tenengrad", choices=["tenengrad", "variance_of_laplacian", "brenner", "normalized_variance"])
+    focus_score.add_argument("--crop-fraction", type=float, default=0.5)
+    focus_score.add_argument("--output-json")
+    focus_score.set_defaults(func=command_focus_score)
+
     run_scan = subparsers.add_parser("run-scan", help="Move a raster over a saved scan ROI and capture all tiles.")
     run_scan.add_argument("--config", required=True)
     run_scan.add_argument("--sample-id", required=True)
@@ -370,6 +417,25 @@ def build_parser() -> argparse.ArgumentParser:
     stage_ui = subparsers.add_parser("stage-ui", help="Open the interactive stage calibration UI.")
     stage_ui.add_argument("--config", required=True)
     stage_ui.set_defaults(func=command_stage_ui)
+
+    review_images = subparsers.add_parser(
+        "review-images",
+        help="Open the manual flake review UI for a scan session or image folder.",
+    )
+    review_source = review_images.add_mutually_exclusive_group(required=True)
+    review_source.add_argument("--session-dir")
+    review_source.add_argument("--image-dir")
+    review_images.add_argument("--output")
+    review_images.set_defaults(func=command_review_images)
+
+    export_manual = subparsers.add_parser(
+        "export-manual-coco",
+        help="Export manually reviewed boxes to COCO JSON.",
+    )
+    export_manual.add_argument("--review-path", required=True)
+    export_manual.add_argument("--output", required=True)
+    export_manual.add_argument("--include-unlabeled-images", action="store_true")
+    export_manual.set_defaults(func=command_export_manual_coco)
 
     return parser
 

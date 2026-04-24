@@ -114,6 +114,17 @@ Estimate residual overlap shift between neighboring tiles:
   --overlap-fraction 0.12
 ```
 
+Score a z-stack or focus bracket with autofocus metrics:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli focus-score `
+  path\to\zminus.jpg `
+  path\to\z0.jpg `
+  path\to\zplus.jpg `
+  --metric tenengrad `
+  --crop-fraction 0.5
+```
+
 Replay a folder of microscope images into a catalog:
 
 ```powershell
@@ -133,10 +144,26 @@ Export reviewed candidates to COCO:
   --output outputs\coco_candidates.json
 ```
 
+Open the manual review UI for a scan session:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli review-images `
+  --session-dir photos\scans\20260424T024315Z_flake_grid_001
+```
+
+Export manual review boxes to COCO:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli export-manual-coco `
+  --review-path photos\scans\20260424T024315Z_flake_grid_001\labels\manual_annotations.json `
+  --output outputs\manual_annotations.coco.json
+```
+
 ## Photo Storage
 
 - `photos/incoming`: fallback hot folder for EOS Utility download handoff
 - `photos/scans/<timestamp>_<sample_id>`: one folder per scan with tiles, logs, QC, and catalog files
+- `photos/scans/<timestamp>_<sample_id>/labels/manual_annotations.json`: manual flake review output from the built-in reviewer UI
 
 The `photos/` tree is gitignored.
 
