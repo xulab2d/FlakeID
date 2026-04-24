@@ -400,6 +400,19 @@ function Get-TileCount {
     return [int]([math]::Ceiling(($ExtentUm - $FovUm) / $stepUm) + 1)
 }
 
+function Get-ScanRoiSummary {
+    if ($null -eq $script:ScanMinXUm -or $null -eq $script:ScanMaxXUm -or $null -eq $script:ScanMinYUm -or $null -eq $script:ScanMaxYUm) {
+        return $null
+    }
+
+    return [pscustomobject]@{
+        MinX = [double][math]::Min([double]$script:ScanMinXUm, [double]$script:ScanMaxXUm)
+        MaxX = [double][math]::Max([double]$script:ScanMinXUm, [double]$script:ScanMaxXUm)
+        MinY = [double][math]::Min([double]$script:ScanMinYUm, [double]$script:ScanMaxYUm)
+        MaxY = [double][math]::Max([double]$script:ScanMinYUm, [double]$script:ScanMaxYUm)
+    }
+}
+
 function Get-TextBoxDouble {
     param(
         [System.Windows.Forms.TextBox]$TextBox,
@@ -411,6 +424,43 @@ function Get-TextBoxDouble {
     catch {
         return $Default
     }
+}
+
+function Get-ScanRoiViolations {
+    $roi = Get-ScanRoiSummary
+    if ($null -eq $roi) {
+        return @()
+    }
+
+    $marginUm = Get-TextBoxDouble -TextBox $marginBox -Default $safetyMarginUm
+    $violations = @()
+
+    if ($null -ne $script:MinXUm) {
+        $safeMinX = [double]$script:MinXUm + $marginUm
+        if ($roi.MinX -lt $safeMinX) {
+            $violations += ("minimum X {0:N0} um is below safe minimum {1:N0} um" -f $roi.MinX, $safeMinX)
+        }
+    }
+    if ($null -ne $script:MaxXUm) {
+        $safeMaxX = [double]$script:MaxXUm - $marginUm
+        if ($roi.MaxX -gt $safeMaxX) {
+            $violations += ("maximum X {0:N0} um exceeds safe maximum {1:N0} um" -f $roi.MaxX, $safeMaxX)
+        }
+    }
+    if ($null -ne $script:MinYUm) {
+        $safeMinY = [double]$script:MinYUm + $marginUm
+        if ($roi.MinY -lt $safeMinY) {
+            $violations += ("minimum Y {0:N0} um is below safe minimum {1:N0} um" -f $roi.MinY, $safeMinY)
+        }
+    }
+    if ($null -ne $script:MaxYUm) {
+        $safeMaxY = [double]$script:MaxYUm - $marginUm
+        if ($roi.MaxY -gt $safeMaxY) {
+            $violations += ("maximum Y {0:N0} um exceeds safe maximum {1:N0} um" -f $roi.MaxY, $safeMaxY)
+        }
+    }
+
+    return $violations
 }
 
 function Quote-ProcessArgument {
@@ -447,7 +497,23 @@ function Update-ScanLabel {
         $scanLabel.Text = "Scan ROI: left={0:N0} um, right={1:N0} um, top={2:N0} um, bottom={3:N0} um. Size={4:N0} x {5:N0} um. Estimated raster={6} x {7} ({8} tiles)." -f $leftEdge, $rightEdge, $topEdge, $bottomEdge, $widthUm, $heightUm, $cols, $rows, ($cols * $rows)
     }
 
-    if ($cameraDriver -eq "watched_folder") {
+    $violations = Get-ScanRoiViolations
+    $marginUm = Get-TextBoxDouble -TextBox $marginBox -Default $safetyMarginUm
+    $safeParts = @()
+    if ($null -ne $script:MinXUm -and $null -ne $script:MaxXUm) {
+        $safeParts += ("X={0:N0}..{1:N0} um" -f ([double]$script:MinXUm + $marginUm), ([double]$script:MaxXUm - $marginUm))
+    }
+    if ($null -ne $script:MinYUm -and $null -ne $script:MaxYUm) {
+        $safeParts += ("Y={0:N0}..{1:N0} um" -f ([double]$script:MinYUm + $marginUm), ([double]$script:MaxYUm - $marginUm))
+    }
+
+    if ($violations.Count -gt 0) {
+        $scanNotes.Text = "ROI is outside the current safe window. " + (($violations | Select-Object -First 2) -join "; ")
+    }
+    elseif ($safeParts.Count -gt 0) {
+        $scanNotes.Text = "Safe scan window with current margin: " + ($safeParts -join ", ")
+    }
+    elseif ($cameraDriver -eq "watched_folder") {
         $scanNotes.Text = "Camera driver: watched_folder. Set EOS Utility once to save into $incomingDir. With your current belt slack, start around 20-30% overlap if you want safer coverage."
     }
     else {
@@ -578,6 +644,11 @@ function Save-ScanSettings {
     param([bool]$ShowMessage = $true)
     if ($null -eq $script:ScanMinXUm -or $null -eq $script:ScanMaxXUm -or $null -eq $script:ScanMinYUm -or $null -eq $script:ScanMaxYUm) {
         [System.Windows.Forms.MessageBox]::Show("Capture all four scan edges before saving the scan ROI.")
+        return $false
+    }
+    $violations = Get-ScanRoiViolations
+    if ($violations.Count -gt 0) {
+        [System.Windows.Forms.MessageBox]::Show("The scan ROI is outside the current safe motion bounds:`r`n`r`n" + ($violations -join "`r`n") + "`r`n`r`nRemark the scan edges farther from the stage limits or reduce the safety margin if you intentionally want to scan closer.")
         return $false
     }
     try {
