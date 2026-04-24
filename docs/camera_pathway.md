@@ -32,9 +32,9 @@ Why:
 Recommended flow:
 
 1. In EOS Utility, open remote shooting.
-2. Set the save destination to the session `incoming` folder.
+2. Set the save destination once to `photos/incoming`.
 3. Disable any linked auto-open behavior you do not want during scanning.
-4. Keep FlakeID responsible for renaming, cataloging, and later analysis.
+4. Keep FlakeID responsible for copying images into per-scan folders, renaming, cataloging, and later analysis.
 
 ### Stage B: Robust Automation
 

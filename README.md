@@ -64,6 +64,17 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\launch_stage_ui.
   -Config configs/lab.example.toml
 ```
 
+Run a capture scan over a saved scan ROI:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli run-scan `
+  --config configs/lab.example.toml `
+  --sample-id graphene_grid_001 `
+  --material graphene `
+  --substrate graphene_285_wet `
+  --objective 10x
+```
+
 Detect candidates in one image:
 
 ```powershell
@@ -121,6 +132,13 @@ Export reviewed candidates to COCO:
   --catalog outputs\flakes.db `
   --output outputs\coco_candidates.json
 ```
+
+## Photo Storage
+
+- `photos/incoming`: fixed hot folder for EOS Utility download handoff
+- `photos/scans/<timestamp>_<sample_id>`: one folder per scan with tiles, logs, QC, and catalog files
+
+The `photos/` tree is gitignored.
 
 ## What This Does Not Yet Solve
 

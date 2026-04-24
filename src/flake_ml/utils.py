@@ -12,6 +12,15 @@ def ensure_dir(path: str | Path) -> Path:
     return resolved
 
 
+def resolve_path(path: str | Path, base_dir: str | Path | None = None) -> Path:
+    candidate = Path(path)
+    if candidate.is_absolute():
+        return candidate
+    if base_dir is None:
+        return candidate.resolve()
+    return (Path(base_dir) / candidate).resolve()
+
+
 def timestamp_utc() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -62,4 +71,3 @@ def normalize_vector(values: np.ndarray) -> np.ndarray:
     std = values.std(axis=0, keepdims=True)
     std = np.where(std < 1e-6, 1.0, std)
     return (values - mean) / std
-

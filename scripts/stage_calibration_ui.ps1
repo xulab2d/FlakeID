@@ -225,16 +225,33 @@ $minYUm = [double](Get-ConfigValue -Path $Config -Section "motion" -Key "min_y_u
 $maxXUm = Get-ConfigValue -Path $Config -Section "motion" -Key "max_x_um" -Default $null
 $maxYUm = Get-ConfigValue -Path $Config -Section "motion" -Key "max_y_um" -Default $null
 $safetyMarginUm = [double](Get-ConfigValue -Path $Config -Section "motion" -Key "safety_margin_um" -Default 1000.0)
+$scanFovWidthUm = [double](Get-ConfigValue -Path $Config -Section "scan" -Key "fov_width_um" -Default 260.0)
+$scanFovHeightUm = [double](Get-ConfigValue -Path $Config -Section "scan" -Key "fov_height_um" -Default 195.0)
+$scanOverlapFraction = [double](Get-ConfigValue -Path $Config -Section "scan" -Key "overlap_fraction" -Default 0.12)
+$scanPhotoRootDir = [string](Get-ConfigValue -Path $Config -Section "scan" -Key "photo_root_dir" -Default "photos/scans")
+$scanRoiMinX = Get-ConfigValue -Path $Config -Section "scan" -Key "roi_min_x_um" -Default $null
+$scanRoiMaxX = Get-ConfigValue -Path $Config -Section "scan" -Key "roi_max_x_um" -Default $null
+$scanRoiMinY = Get-ConfigValue -Path $Config -Section "scan" -Key "roi_min_y_um" -Default $null
+$scanRoiMaxY = Get-ConfigValue -Path $Config -Section "scan" -Key "roi_max_y_um" -Default $null
+$cameraDriver = [string](Get-ConfigValue -Path $Config -Section "camera" -Key "driver" -Default "watched_folder")
+$incomingDir = [string](Get-ConfigValue -Path $Config -Section "camera" -Key "incoming_dir" -Default "photos/incoming")
+if (-not [System.IO.Path]::IsPathRooted($incomingDir)) {
+    $incomingDir = Join-Path $repoRoot $incomingDir
+}
 
 $script:CurrentStatus = $null
 $script:MinXUm = if ($null -eq $minXUm) { $null } else { [double]$minXUm }
 $script:MinYUm = if ($null -eq $minYUm) { $null } else { [double]$minYUm }
 $script:MaxXUm = if ($null -eq $maxXUm) { $null } else { [double]$maxXUm }
 $script:MaxYUm = if ($null -eq $maxYUm) { $null } else { [double]$maxYUm }
+$script:ScanMinXUm = if ($null -eq $scanRoiMinX) { $null } else { [double]$scanRoiMinX }
+$script:ScanMaxXUm = if ($null -eq $scanRoiMaxX) { $null } else { [double]$scanRoiMaxX }
+$script:ScanMinYUm = if ($null -eq $scanRoiMinY) { $null } else { [double]$scanRoiMinY }
+$script:ScanMaxYUm = if ($null -eq $scanRoiMaxY) { $null } else { [double]$scanRoiMaxY }
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "FlakeID Stage Calibration"
-$form.Size = New-Object System.Drawing.Size(940, 760)
+$form.Text = "FlakeID Stage Control and Scan"
+$form.Size = New-Object System.Drawing.Size(1040, 1080)
 $form.StartPosition = "CenterScreen"
 
 function New-Label {
@@ -273,13 +290,13 @@ $baudLabel = New-Label "Baud: $baud" 220 50 180 24
 $stateLabel = New-Label "State: --" 420 50 180 24
 $machineLabel = New-Label "MPos: --" 20 80 280 24
 $workLabel = New-Label "WPos: --" 320 80 280 24
-$boundsLabel = New-Label "" 20 540 860 24
-$rawLabel = New-Label "Raw controller text:" 20 580 200 24
+$boundsLabel = New-Label "" 20 540 980 24
+$rawLabel = New-Label "Raw controller text:" 20 860 200 24
 $rawBox = New-Object System.Windows.Forms.TextBox
 $rawBox.Multiline = $true
 $rawBox.ScrollBars = "Vertical"
-$rawBox.Location = New-Object System.Drawing.Point(20, 605)
-$rawBox.Size = New-Object System.Drawing.Size(880, 110)
+$rawBox.Location = New-Object System.Drawing.Point(20, 885)
+$rawBox.Size = New-Object System.Drawing.Size(980, 130)
 $form.Controls.Add($rawBox)
 
 New-Label "Jog step (um)" 20 130 120 24 | Out-Null
@@ -321,12 +338,90 @@ $saveBoundsButton = New-Button "Save Bounds" 790 465 110 36
 $notes = New-Label "Suggested start: feed 20-40 mm/min, max rate 40-80 mm/min, accel 1-3 mm/s^2. Mark bounds at backed-off safe points, not hard stops." 20 510 880 24
 $notes.AutoSize = $false
 
+$scanHeader = New-Label "Scan Setup" 20 585 200 24
+New-Label "Sample ID" 20 620 80 24 | Out-Null
+$sampleIdBox = New-TextBox "flake_grid_001" 105 618 170 24
+New-Label "Material" 300 620 60 24 | Out-Null
+$materialBox = New-TextBox "graphene" 365 618 120 24
+New-Label "Substrate" 505 620 70 24 | Out-Null
+$substrateBox = New-TextBox "graphene_285_wet" 580 618 170 24
+New-Label "Objective" 770 620 60 24 | Out-Null
+$objectiveBox = New-TextBox "10x" 835 618 70 24
+
+New-Label "Operator" 20 655 80 24 | Out-Null
+$operatorBox = New-TextBox "" 105 653 170 24
+New-Label "Overlap" 300 655 55 24 | Out-Null
+$overlapBox = New-TextBox ([string]$scanOverlapFraction) 365 653 70 24
+New-Label "Photo root" 455 655 70 24 | Out-Null
+$photoRootBox = New-TextBox $scanPhotoRootDir 530 653 375 24
+
+New-Label "Incoming hot folder" 20 690 120 24 | Out-Null
+$incomingBox = New-TextBox $incomingDir 145 688 760 24
+$incomingBox.ReadOnly = $true
+
+$markLeftEdgeButton = New-Button "Mark Left Edge" 20 730 120 36
+$markRightEdgeButton = New-Button "Mark Right Edge" 150 730 120 36
+$markTopEdgeButton = New-Button "Mark Top Edge" 280 730 120 36
+$markBottomEdgeButton = New-Button "Mark Bottom Edge" 410 730 120 36
+$saveScanButton = New-Button "Save Scan ROI" 540 730 120 36
+$startScanButton = New-Button "Start Scan" 670 730 120 36
+$scanLabel = New-Label "" 20 780 980 40
+$scanLabel.AutoSize = $false
+$scanNotes = New-Label "" 20 820 980 28
+$scanNotes.AutoSize = $false
+
 function Update-BoundsLabel {
     $minXText = if ($null -eq $script:MinXUm) { "--" } else { "{0:N0} um" -f $script:MinXUm }
     $maxXText = if ($null -eq $script:MaxXUm) { "--" } else { "{0:N0} um" -f $script:MaxXUm }
     $minYText = if ($null -eq $script:MinYUm) { "--" } else { "{0:N0} um" -f $script:MinYUm }
     $maxYText = if ($null -eq $script:MaxYUm) { "--" } else { "{0:N0} um" -f $script:MaxYUm }
     $boundsLabel.Text = "Pending bounds: min_x=$minXText, max_x=$maxXText, min_y=$minYText, max_y=$maxYText"
+}
+
+function Get-TileCount {
+    param(
+        [double]$ExtentUm,
+        [double]$FovUm,
+        [double]$OverlapFraction
+    )
+    if ($ExtentUm -le $FovUm) {
+        return 1
+    }
+    $stepUm = $FovUm * (1.0 - $OverlapFraction)
+    if ($stepUm -le 0.0) {
+        throw "Overlap fraction must be less than 1.0."
+    }
+    return [int]([math]::Ceiling(($ExtentUm - $FovUm) / $stepUm) + 1)
+}
+
+function Update-ScanLabel {
+    if ($null -eq $script:ScanMinXUm -or $null -eq $script:ScanMaxXUm -or $null -eq $script:ScanMinYUm -or $null -eq $script:ScanMaxYUm) {
+        $scanLabel.Text = "Pending scan ROI: mark left, right, top, and bottom edges, then start the scan."
+    }
+    else {
+        $leftEdge = [double]$script:ScanMaxXUm
+        $rightEdge = [double]$script:ScanMinXUm
+        $topEdge = [double]$script:ScanMinYUm
+        $bottomEdge = [double]$script:ScanMaxYUm
+        $widthUm = [math]::Abs($leftEdge - $rightEdge)
+        $heightUm = [math]::Abs($bottomEdge - $topEdge)
+        try {
+            $overlap = [double]$overlapBox.Text
+        }
+        catch {
+            $overlap = $scanOverlapFraction
+        }
+        $cols = Get-TileCount -ExtentUm $widthUm -FovUm $scanFovWidthUm -OverlapFraction $overlap
+        $rows = Get-TileCount -ExtentUm $heightUm -FovUm $scanFovHeightUm -OverlapFraction $overlap
+        $scanLabel.Text = "Scan ROI: left={0:N0} um, right={1:N0} um, top={2:N0} um, bottom={3:N0} um. Size={4:N0} x {5:N0} um. Estimated raster={6} x {7} ({8} tiles)." -f $leftEdge, $rightEdge, $topEdge, $bottomEdge, $widthUm, $heightUm, $cols, $rows, ($cols * $rows)
+    }
+
+    if ($cameraDriver -eq "watched_folder") {
+        $scanNotes.Text = "Camera driver: watched_folder. Set EOS Utility once to save into $incomingDir. If camera.capture_command stays blank, each tile waits for the next new image in that folder."
+    }
+    else {
+        $scanNotes.Text = "Camera driver: $cameraDriver. Start Scan will use the configured capture path for each tile."
+    }
 }
 
 function Refresh-Status {
@@ -403,6 +498,23 @@ function Capture-Bound {
     Update-BoundsLabel
 }
 
+function Capture-ScanEdge {
+    param([string]$FieldName)
+    if ($null -eq $script:CurrentStatus) {
+        Refresh-Status
+    }
+    if ($null -eq $script:CurrentStatus) {
+        return
+    }
+    switch ($FieldName) {
+        "left_edge" { $script:ScanMaxXUm = $script:CurrentStatus.MachineX * 1000.0 }
+        "right_edge" { $script:ScanMinXUm = $script:CurrentStatus.MachineX * 1000.0 }
+        "top_edge" { $script:ScanMinYUm = $script:CurrentStatus.MachineY * 1000.0 }
+        "bottom_edge" { $script:ScanMaxYUm = $script:CurrentStatus.MachineY * 1000.0 }
+    }
+    Update-ScanLabel
+}
+
 function Save-BoundsAndSettings {
     if ($null -eq $script:MaxXUm -or $null -eq $script:MaxYUm) {
         [System.Windows.Forms.MessageBox]::Show("Capture both max bounds before saving.")
@@ -429,6 +541,97 @@ function Save-BoundsAndSettings {
     catch {
         [System.Windows.Forms.MessageBox]::Show("Saving config failed: $($_.Exception.Message)")
     }
+}
+
+function Save-ScanSettings {
+    param([bool]$ShowMessage = $true)
+    if ($null -eq $script:ScanMinXUm -or $null -eq $script:ScanMaxXUm -or $null -eq $script:ScanMinYUm -or $null -eq $script:ScanMaxYUm) {
+        [System.Windows.Forms.MessageBox]::Show("Capture all four scan edges before saving the scan ROI.")
+        return $false
+    }
+    try {
+        $updates = @{
+            overlap_fraction = [double]$overlapBox.Text
+            photo_root_dir = [string]$photoRootBox.Text
+            roi_min_x_um = [double]$script:ScanMinXUm
+            roi_max_x_um = [double]$script:ScanMaxXUm
+            roi_min_y_um = [double]$script:ScanMinYUm
+            roi_max_y_um = [double]$script:ScanMaxYUm
+        }
+        Set-ConfigValues -Path $Config -Section "scan" -Updates $updates
+        if ($ShowMessage) {
+            [System.Windows.Forms.MessageBox]::Show("Saved scan ROI and scan settings to $Config")
+        }
+        return $true
+    }
+    catch {
+        [System.Windows.Forms.MessageBox]::Show("Saving scan settings failed: $($_.Exception.Message)")
+        return $false
+    }
+}
+
+function Start-Scan {
+    if (-not (Save-ScanSettings -ShowMessage:$false)) {
+        return
+    }
+
+    $sampleId = $sampleIdBox.Text.Trim()
+    $material = $materialBox.Text.Trim()
+    $substrate = $substrateBox.Text.Trim()
+    $objective = $objectiveBox.Text.Trim()
+    $operator = $operatorBox.Text.Trim()
+    $photoRoot = $photoRootBox.Text.Trim()
+
+    if ([string]::IsNullOrWhiteSpace($sampleId) -or [string]::IsNullOrWhiteSpace($material) -or [string]::IsNullOrWhiteSpace($substrate) -or [string]::IsNullOrWhiteSpace($objective)) {
+        [System.Windows.Forms.MessageBox]::Show("Sample ID, material, substrate, and objective are required before starting a scan.")
+        return
+    }
+
+    $pythonExe = Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
+    $launchScript = Join-Path $repoRoot "scripts\launch_capture_scan.ps1"
+    if (-not (Test-Path $pythonExe)) {
+        [System.Windows.Forms.MessageBox]::Show("Bundled Python runtime was not found at $pythonExe")
+        return
+    }
+    if (-not (Test-Path $launchScript)) {
+        [System.Windows.Forms.MessageBox]::Show("Scan launcher script was not found at $launchScript")
+        return
+    }
+
+    if (-not [System.IO.Path]::IsPathRooted($photoRoot)) {
+        $resolvedPhotoRoot = Join-Path $repoRoot $photoRoot
+    }
+    else {
+        $resolvedPhotoRoot = $photoRoot
+    }
+    if (-not (Test-Path $resolvedPhotoRoot)) {
+        New-Item -ItemType Directory -Path $resolvedPhotoRoot -Force | Out-Null
+    }
+    if (-not (Test-Path $incomingDir)) {
+        New-Item -ItemType Directory -Path $incomingDir -Force | Out-Null
+    }
+
+    $argList = @(
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", $launchScript,
+        "-Config", $Config,
+        "-SampleId", $sampleId,
+        "-Material", $material,
+        "-Substrate", $substrate,
+        "-Objective", $objective,
+        "-OutputRoot", $photoRoot,
+        "-RoiMinXUm", ('{0:0.###}' -f $script:ScanMinXUm),
+        "-RoiMaxXUm", ('{0:0.###}' -f $script:ScanMaxXUm),
+        "-RoiMinYUm", ('{0:0.###}' -f $script:ScanMinYUm),
+        "-RoiMaxYUm", ('{0:0.###}' -f $script:ScanMaxYUm)
+    )
+    if (-not [string]::IsNullOrWhiteSpace($operator)) {
+        $argList += @("-Operator", $operator)
+    }
+
+    $process = Start-Process -FilePath "powershell.exe" -ArgumentList $argList -WorkingDirectory $repoRoot -PassThru
+    $rawBox.Text = "Started scan in a separate PowerShell window (PID $($process.Id)).`r`nPhoto root: $resolvedPhotoRoot`r`nIncoming hot folder: $incomingDir`r`nWatch the new console for live capture progress."
 }
 
 $refreshButton.Add_Click({ Refresh-Status })
@@ -470,8 +673,16 @@ $markMaxXButton.Add_Click({ Capture-Bound -FieldName "max_x_um" })
 $markMinYButton.Add_Click({ Capture-Bound -FieldName "min_y_um" })
 $markMaxYButton.Add_Click({ Capture-Bound -FieldName "max_y_um" })
 $saveBoundsButton.Add_Click({ Save-BoundsAndSettings })
+$markLeftEdgeButton.Add_Click({ Capture-ScanEdge -FieldName "left_edge" })
+$markRightEdgeButton.Add_Click({ Capture-ScanEdge -FieldName "right_edge" })
+$markTopEdgeButton.Add_Click({ Capture-ScanEdge -FieldName "top_edge" })
+$markBottomEdgeButton.Add_Click({ Capture-ScanEdge -FieldName "bottom_edge" })
+$saveScanButton.Add_Click({ [void](Save-ScanSettings) })
+$startScanButton.Add_Click({ Start-Scan })
+$overlapBox.Add_TextChanged({ Update-ScanLabel })
 
 Update-BoundsLabel
+Update-ScanLabel
 
 if ($SelfTest) {
     Write-Output "stage-calibration-ui-ok"

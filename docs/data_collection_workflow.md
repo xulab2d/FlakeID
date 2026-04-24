@@ -9,27 +9,33 @@ Collect microscope images in a way that is immediately usable for:
 - later re-registration and drift correction
 - later supervised training
 
-## Session Layout
+## Scan Folder Layout
 
-Use one session folder per scan day / sample batch.
+Each automated raster now creates its own folder inside `photos/scans`.
 
-The `init-session` command creates:
+A typical scan folder contains:
 
-- `incoming`: raw files arriving from EOS Utility
 - `tiles`: curated per-tile images used by the pipeline
 - `blankfield`: blank substrate or no-sample images for flat-field correction
 - `anchors`: reference images used for drift / backlash checks
 - `labels`: exported annotations or review artifacts
 - `logs`: acquisition logs and notes
-- `qc`: quick overlays, diagnostics, and registration outputs
+- `qc`: scan plan, summaries, and registration diagnostics
+- `scan_catalog.db`: SQLite catalog for the scan
 
-## Start-Of-Session Checklist
+The fixed EOS Utility hot folder should be:
+
+- `photos/incoming`
+
+This avoids changing the EOS Utility save destination for every scan. FlakeID watches that one folder and copies each new image into the active scan folder automatically.
+
+## Start-Of-Scan Checklist
 
 1. Run `camera-probe` once and confirm the expected camera is present.
-2. Run `init-session` and note the session path.
-3. In EOS Utility, point downloads to the session `incoming` directory.
-4. Lock microscope lamp intensity and camera settings.
-5. Confirm the current objective and record it in the session metadata.
+2. In EOS Utility, point downloads to `photos/incoming`.
+3. Lock microscope lamp intensity and camera settings.
+4. Confirm the current objective and sample metadata in the scan UI.
+5. Mark the scan ROI edges, then start with a small pilot raster before larger runs.
 
 ## Capture Order
 
@@ -73,6 +79,18 @@ Collect a small pilot area first:
 ### 4. Production Tiles
 
 Once the pilot looks stable, acquire the larger raster.
+
+## If Capture Triggering Is Still Manual
+
+If `camera.capture_command` is blank and the driver is `watched_folder`, the scan waits at each tile until a new image appears in `photos/incoming`.
+
+That is still useful for:
+
+- early camera bring-up
+- testing raster geometry
+- small human-supervised pilot scans
+
+Once a direct trigger command or Canon SDK helper is added, the same scan folders and UI workflow continue to work.
 
 ## Labeling Priorities
 

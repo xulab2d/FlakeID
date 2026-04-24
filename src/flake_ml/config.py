@@ -44,6 +44,11 @@ class ScanConfig:
     overlap_fraction: float = 0.12
     origin_x_um: float = 0.0
     origin_y_um: float = 0.0
+    photo_root_dir: str = "photos/scans"
+    roi_min_x_um: float | None = None
+    roi_max_x_um: float | None = None
+    roi_min_y_um: float | None = None
+    roi_max_y_um: float | None = None
 
 
 @dataclass(slots=True)

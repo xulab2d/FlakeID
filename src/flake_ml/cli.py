@@ -19,6 +19,7 @@ from .models import ScanTile, StagePosition
 from .processing.preprocess import build_flat_field, load_image
 from .registration import estimate_overlap_shift_from_paths
 from .scanning.planner import build_serpentine_plan
+from .scanning.runtime import run_capture_scan
 from .session import initialize_session
 from .utils import normalize_vector
 
@@ -228,6 +229,46 @@ def command_estimate_shift(args: argparse.Namespace) -> None:
     print(json.dumps(payload, indent=2))
 
 
+def command_run_scan(args: argparse.Namespace) -> None:
+    config = load_lab_config(args.config)
+    roi_min_x_um = args.roi_min_x_um if args.roi_min_x_um is not None else config.scan.roi_min_x_um
+    roi_max_x_um = args.roi_max_x_um if args.roi_max_x_um is not None else config.scan.roi_max_x_um
+    roi_min_y_um = args.roi_min_y_um if args.roi_min_y_um is not None else config.scan.roi_min_y_um
+    roi_max_y_um = args.roi_max_y_um if args.roi_max_y_um is not None else config.scan.roi_max_y_um
+
+    missing = [
+        name
+        for name, value in {
+            "roi_min_x_um": roi_min_x_um,
+            "roi_max_x_um": roi_max_x_um,
+            "roi_min_y_um": roi_min_y_um,
+            "roi_max_y_um": roi_max_y_um,
+        }.items()
+        if value is None
+    ]
+    if missing:
+        raise ValueError(f"Scan ROI is incomplete. Provide {', '.join(missing)} or save the scan ROI in the config.")
+
+    output_root = args.output_root or config.scan.photo_root_dir
+    summary = run_capture_scan(
+        config_path=args.config,
+        config=config,
+        sample_id=args.sample_id,
+        material=args.material,
+        substrate=args.substrate,
+        objective=args.objective,
+        operator=args.operator,
+        notes=args.notes,
+        roi_min_x_um=float(roi_min_x_um),
+        roi_max_x_um=float(roi_max_x_um),
+        roi_min_y_um=float(roi_min_y_um),
+        roi_max_y_um=float(roi_max_y_um),
+        output_root=output_root,
+        log=lambda message: print(message, flush=True),
+    )
+    print(json.dumps(summary, indent=2))
+
+
 def command_stage_ui(args: argparse.Namespace) -> None:
     launcher = Path(__file__).resolve().parents[2] / "scripts" / "stage_calibration_ui.ps1"
     subprocess.Popen(
@@ -307,6 +348,21 @@ def build_parser() -> argparse.ArgumentParser:
     estimate_shift.add_argument("--overlap-fraction", type=float, required=True)
     estimate_shift.add_argument("--output-json")
     estimate_shift.set_defaults(func=command_estimate_shift)
+
+    run_scan = subparsers.add_parser("run-scan", help="Move a raster over a saved scan ROI and capture all tiles.")
+    run_scan.add_argument("--config", required=True)
+    run_scan.add_argument("--sample-id", required=True)
+    run_scan.add_argument("--material", required=True)
+    run_scan.add_argument("--substrate", required=True)
+    run_scan.add_argument("--objective", required=True)
+    run_scan.add_argument("--operator", default="")
+    run_scan.add_argument("--notes", default="")
+    run_scan.add_argument("--output-root")
+    run_scan.add_argument("--roi-min-x-um", type=float)
+    run_scan.add_argument("--roi-max-x-um", type=float)
+    run_scan.add_argument("--roi-min-y-um", type=float)
+    run_scan.add_argument("--roi-max-y-um", type=float)
+    run_scan.set_defaults(func=command_run_scan)
 
     stage_ui = subparsers.add_parser("stage-ui", help="Open the interactive stage calibration UI.")
     stage_ui.add_argument("--config", required=True)

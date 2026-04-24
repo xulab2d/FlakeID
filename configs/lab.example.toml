@@ -20,10 +20,10 @@ max_y_um = 8500
 safety_margin_um = 1000
 
 [camera]
-driver = "external_command"
+driver = "watched_folder"
 output_extension = ".jpg"
-capture_command = "Write-Error 'Set camera.capture_command in configs/lab.toml to a real Canon capture command.'"
-incoming_dir = ""
+capture_command = ""
+incoming_dir = "photos/incoming"
 watch_timeout_s = 30.0
 watch_stability_ms = 500
 watch_extensions = ".jpg,.jpeg,.png,.tif,.tiff"
@@ -34,6 +34,7 @@ fov_height_um = 195.0
 overlap_fraction = 0.12
 origin_x_um = 0.0
 origin_y_um = 0.0
+photo_root_dir = "photos/scans"
 
 [detector]
 min_area_px = 80
