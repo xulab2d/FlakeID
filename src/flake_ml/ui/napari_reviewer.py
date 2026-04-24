@@ -34,6 +34,20 @@ TILE_LABEL_SHORTCUTS = (
 )
 
 
+def _normalize_object_label(value: object, fallback: str) -> str:
+    label = str(value).strip() if value is not None else ""
+    if label in VALID_OBJECT_LABELS:
+        return label
+    return fallback if fallback in VALID_OBJECT_LABELS else VALID_OBJECT_LABELS[0]
+
+
+def _sanitize_shape_labels(raw_labels: list[object], count: int, fallback: str) -> list[str]:
+    return [
+        _normalize_object_label(raw_labels[index] if index < len(raw_labels) else None, fallback)
+        for index in range(count)
+    ]
+
+
 def _import_napari_modules():
     try:
         import napari
@@ -241,13 +255,19 @@ class NapariReviewApp:
             return []
         labels = _labels_from_features(self.shapes_layer)
         count = len(self.shapes_layer.data)
-        if len(labels) < count:
-            labels.extend([self.object_label_combo.currentText()] * (count - len(labels)))
-        return labels[:count]
+        return _sanitize_shape_labels(labels, count, self.object_label_combo.currentText())
+
+    def _set_shape_labels(self, labels: list[str]) -> None:
+        if self.shapes_layer is None:
+            return
+        sanitized = _sanitize_shape_labels(labels, len(self.shapes_layer.data), self.object_label_combo.currentText())
+        try:
+            self.shapes_layer.features = {"label": np.asarray(sanitized, dtype=object)}
+        except Exception:
+            pass
 
     def _set_current_object_label(self, label: str) -> None:
-        if label not in VALID_OBJECT_LABELS:
-            label = VALID_OBJECT_LABELS[0]
+        label = _normalize_object_label(label, VALID_OBJECT_LABELS[0])
         self.object_label_combo.blockSignals(True)
         self.object_label_combo.setCurrentText(label)
         self.object_label_combo.blockSignals(False)
@@ -267,10 +287,7 @@ class NapariReviewApp:
         if self.shapes_layer is None:
             return
         labels = self._current_shape_labels()
-        try:
-            self.shapes_layer.features = {"label": np.asarray(labels, dtype=object)}
-        except Exception:
-            pass
+        self._set_shape_labels(labels)
         if labels:
             colors = [OBJECT_LABEL_COLORS.get(label, "#ffffff") for label in labels]
             self.shapes_layer.edge_color = colors
@@ -281,7 +298,7 @@ class NapariReviewApp:
         except Exception:
             pass
         try:
-            self.shapes_layer.text = "label"
+            self.shapes_layer.text = "{label}"
         except Exception:
             pass
 
@@ -376,10 +393,25 @@ class NapariReviewApp:
     def _apply_label_to_selected(self) -> None:
         if self.shapes_layer is None:
             return
+        selected_label = _normalize_object_label(self.object_label_combo.currentText(), VALID_OBJECT_LABELS[0])
         self.shapes_layer.mode = "select"
-        self.shapes_layer.current_properties = {"label": np.asarray([self.object_label_combo.currentText()], dtype=object)}
+        labels = self._current_shape_labels()
+        selected = sorted(int(index) for index in self.shapes_layer.selected_data)
+        if selected:
+            for index in selected:
+                if 0 <= index < len(labels):
+                    labels[index] = selected_label
+            self._set_shape_labels(labels)
+        self.shapes_layer.current_properties = {"label": np.asarray([selected_label], dtype=object)}
+        try:
+            self.shapes_layer.feature_defaults = {"label": np.asarray([selected_label], dtype=object)}
+        except Exception:
+            pass
         self._refresh_shape_styles()
-        self._update_status(extra="Applied label to the selected shape(s).")
+        if selected:
+            self._update_status(extra=f"Applied label '{selected_label}' to {len(selected)} selected shape(s).")
+        else:
+            self._update_status(extra=f"New shapes will use label: {selected_label}")
 
     def _on_shapes_changed(self, _event=None) -> None:
         if self._is_loading_layer:
