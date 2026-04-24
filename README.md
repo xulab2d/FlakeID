@@ -160,6 +160,17 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\launch_napari_re
 
 Use napari polygon mode for irregular flake outlines and rectangle mode only for quick coarse labels. The napari reviewer saves polygon vertices directly into the same `manual_annotations.json` file, so later COCO exports keep the real outline instead of collapsing everything to crude boxes.
 
+Recommended tile labels:
+
+- `flake_present`: the field contains one or more flakes worth annotating
+- `empty_substrate`: true negative on the correct substrate with no flake present
+- `off_target`: the stage is between sites or otherwise not over a useful survey location
+- `bad_focus`: the field is not trustworthy because focus failed
+- `artifact`: dust, glare, tape residue, edge effects, or other nuisance structure
+- `unsure`: reviewer cannot confidently decide yet
+
+Object labels stay flake-specific: `graphene`, `hbn`, `other_flake`, and `artifact`.
+
 Export manual review polygons or boxes to COCO:
 
 ```powershell

@@ -7,12 +7,20 @@ from flake_ml.annotation.manual import (
     ManualObjectAnnotation,
     export_manual_annotations_to_coco,
     load_manual_annotations,
+    normalize_tile_label,
     resolve_review_paths,
     save_manual_annotations,
 )
 
 
 class ManualAnnotationTests(unittest.TestCase):
+    def test_normalize_tile_label_maps_legacy_values(self) -> None:
+        self.assertEqual(normalize_tile_label("no_flake"), "empty_substrate")
+        self.assertEqual(normalize_tile_label("graphene"), "flake_present")
+        self.assertEqual(normalize_tile_label("hbn"), "flake_present")
+        self.assertEqual(normalize_tile_label("mixed"), "flake_present")
+        self.assertEqual(normalize_tile_label("bad_focus"), "bad_focus")
+
     def test_resolve_review_paths_for_session_dir(self) -> None:
         session_dir = Path.cwd() / "outputs" / "test_temp" / "manual_review" / "session_a"
         image_dir, output_path = resolve_review_paths(session_dir=session_dir)
@@ -35,12 +43,12 @@ class ManualAnnotationTests(unittest.TestCase):
         annotations = {
             str(image_a.resolve()): ManualImageAnnotation(
                 image_path=str(image_a.resolve()),
-                tile_label="graphene",
+                tile_label="flake_present",
                 objects=[ManualObjectAnnotation(label="graphene", bbox_xywh=(10, 20, 30, 40))],
             ),
             str(image_b.resolve()): ManualImageAnnotation(
                 image_path=str(image_b.resolve()),
-                tile_label="hbn",
+                tile_label="flake_present",
                 objects=[
                     ManualObjectAnnotation(
                         label="hbn",
@@ -51,7 +59,7 @@ class ManualAnnotationTests(unittest.TestCase):
             ),
             str(image_c.resolve()): ManualImageAnnotation(
                 image_path=str(image_c.resolve()),
-                tile_label="no_flake",
+                tile_label="empty_substrate",
                 objects=[],
             ),
         }

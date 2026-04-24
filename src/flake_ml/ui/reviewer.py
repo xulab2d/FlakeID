@@ -18,6 +18,16 @@ from ..annotation.manual import (
 from ..utils import timestamp_utc
 
 
+TILE_LABEL_SHORTCUTS = (
+    ("1", "empty_substrate"),
+    ("2", "flake_present"),
+    ("3", "off_target"),
+    ("4", "bad_focus"),
+    ("5", "artifact"),
+    ("6", "unsure"),
+)
+
+
 class ManualReviewApp:
     def __init__(self, root: tk.Tk, image_dir: str | Path, output_path: str | Path) -> None:
         self.root = root
@@ -104,13 +114,17 @@ class ManualReviewApp:
 
         ttk.Separator(right, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=10)
 
-        ttk.Label(right, text="New Box Label").pack(anchor="w")
+        ttk.Label(right, text="New Object Label").pack(anchor="w")
         label_menu = ttk.OptionMenu(right, self.object_label_var, VALID_OBJECT_LABELS[0], *VALID_OBJECT_LABELS)
         label_menu.pack(fill=tk.X, pady=4)
 
         ttk.Label(
             right,
-            text="Draw boxes with left-drag.\nClick an existing shape to select it.\nUse Delete to remove the selected shape.",
+            text=(
+                "Draw boxes with left-drag.\n"
+                "Use tile labels to separate empty substrate from off-target or bad-focus frames.\n"
+                "Use Delete to remove the selected shape."
+            ),
             justify=tk.LEFT,
         ).pack(anchor="w", pady=10)
 
@@ -130,12 +144,8 @@ class ManualReviewApp:
         self.root.bind("<Right>", lambda _event: self.next_image())
         self.root.bind("<Control-s>", lambda _event: self.save_all())
         self.root.bind("<Delete>", lambda _event: self.delete_selected_box())
-        self.root.bind("1", lambda _event: self._set_tile_label("no_flake"))
-        self.root.bind("2", lambda _event: self._set_tile_label("graphene"))
-        self.root.bind("3", lambda _event: self._set_tile_label("hbn"))
-        self.root.bind("4", lambda _event: self._set_tile_label("mixed"))
-        self.root.bind("5", lambda _event: self._set_tile_label("artifact"))
-        self.root.bind("6", lambda _event: self._set_tile_label("unsure"))
+        for key, label in TILE_LABEL_SHORTCUTS:
+            self.root.bind(key, lambda _event, tile_label=label: self._set_tile_label(tile_label))
 
     def _annotation_for(self, image_path: Path) -> ManualImageAnnotation:
         key = str(image_path)

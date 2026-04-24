@@ -24,6 +24,15 @@ OBJECT_LABEL_COLORS = {
     "artifact": "#f66151",
 }
 
+TILE_LABEL_SHORTCUTS = (
+    ("1", "empty_substrate"),
+    ("2", "flake_present"),
+    ("3", "off_target"),
+    ("4", "bad_focus"),
+    ("5", "artifact"),
+    ("6", "unsure"),
+)
+
 
 def _import_napari_modules():
     try:
@@ -194,7 +203,9 @@ class NapariReviewApp:
 
         help_label = QLabel(
             "Use polygon mode for precise flake outlines.\n"
+            "Tile labels distinguish empty substrate from off-target and bad-focus frames.\n"
             "napari keys: P polygon, R rectangle, S select, Delete removes selected shapes.\n"
+            "Review keys: 1 empty_substrate, 2 flake_present, 3 off_target, 4 bad_focus, 5 artifact, 6 unsure.\n"
             "This tool saves polygons into manual_annotations.json for later COCO export."
         )
         help_label.setWordWrap(True)
@@ -214,6 +225,10 @@ class NapariReviewApp:
         next_shortcut.activated.connect(self.next_image)
         prev_shortcut = QShortcut(QKeySequence("["), parent)
         prev_shortcut.activated.connect(self.prev_image)
+        for key, label in TILE_LABEL_SHORTCUTS:
+            label_shortcut = QShortcut(QKeySequence(key), parent)
+            label_shortcut.activated.connect(lambda tile_label=label: self._set_tile_label(tile_label))
+            setattr(self, f"_tile_shortcut_{key}", label_shortcut)
 
     def _annotation_for(self, image_path: Path) -> ManualImageAnnotation:
         key = str(image_path.resolve())
@@ -341,6 +356,12 @@ class NapariReviewApp:
 
     def _fit_view(self) -> None:
         self.viewer.reset_view()
+
+    def _set_tile_label(self, label: str) -> None:
+        if label not in VALID_TILE_LABELS:
+            return
+        self.tile_label_combo.setCurrentText(label)
+        self._update_status(extra=f"Tile label: {label}")
 
     def _set_shape_mode(self, mode: str) -> None:
         if self.shapes_layer is None:

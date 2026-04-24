@@ -11,13 +11,20 @@ from ..utils import ensure_dir, timestamp_utc
 
 VALID_TILE_LABELS = (
     "unreviewed",
-    "no_flake",
-    "graphene",
-    "hbn",
-    "mixed",
+    "flake_present",
+    "empty_substrate",
+    "off_target",
+    "bad_focus",
     "artifact",
     "unsure",
 )
+
+LEGACY_TILE_LABEL_ALIASES = {
+    "no_flake": "empty_substrate",
+    "graphene": "flake_present",
+    "hbn": "flake_present",
+    "mixed": "flake_present",
+}
 
 VALID_OBJECT_LABELS = (
     "graphene",
@@ -25,6 +32,15 @@ VALID_OBJECT_LABELS = (
     "other_flake",
     "artifact",
 )
+
+
+def normalize_tile_label(value: str) -> str:
+    label = str(value or "unreviewed").strip().lower()
+    if label in LEGACY_TILE_LABEL_ALIASES:
+        return LEGACY_TILE_LABEL_ALIASES[label]
+    if label in VALID_TILE_LABELS:
+        return label
+    return "unreviewed"
 
 
 def normalize_vertices(vertices_xy: Iterable[Iterable[float]]) -> list[tuple[float, float]]:
@@ -139,10 +155,16 @@ class ManualImageAnnotation:
     objects: list[ManualObjectAnnotation] = field(default_factory=list)
     updated_utc: str = ""
 
+    def __post_init__(self) -> None:
+        self.image_path = str(self.image_path)
+        self.tile_label = normalize_tile_label(self.tile_label)
+        self.notes = str(self.notes)
+        self.updated_utc = str(self.updated_utc)
+
     def to_dict(self) -> dict:
         return {
             "image_path": self.image_path,
-            "tile_label": self.tile_label,
+            "tile_label": normalize_tile_label(self.tile_label),
             "notes": self.notes,
             "objects": [item.to_dict() for item in self.objects],
             "updated_utc": self.updated_utc,
