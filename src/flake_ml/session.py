@@ -13,6 +13,15 @@ def _session_timestamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
+def _sanitize_path_component(value: str) -> str:
+    cleaned = str(value).strip()
+    invalid = '<>:"/\\|?*'
+    cleaned = "".join("_" if char in invalid else char for char in cleaned)
+    cleaned = "_".join(cleaned.split())
+    cleaned = cleaned.rstrip(". ")
+    return cleaned or "scan"
+
+
 def initialize_session(
     output_root: str | Path,
     config_path: str | Path,
@@ -25,7 +34,7 @@ def initialize_session(
     notes: str = "",
 ) -> dict:
     timestamp = _session_timestamp()
-    session_name = f"{timestamp}_{sample_id}"
+    session_name = f"{timestamp}_{_sanitize_path_component(sample_id)}"
     session_dir = ensure_dir(Path(output_root) / session_name)
 
     subdirs = {

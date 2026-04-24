@@ -251,7 +251,7 @@ $script:ScanMaxYUm = if ($null -eq $scanRoiMaxY) { $null } else { [double]$scanR
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "FlakeID Stage Control and Scan"
-$form.Size = New-Object System.Drawing.Size(1040, 1080)
+$form.Size = New-Object System.Drawing.Size(1040, 1125)
 $form.StartPosition = "CenterScreen"
 
 function New-Label {
@@ -291,12 +291,12 @@ $stateLabel = New-Label "State: --" 420 50 180 24
 $machineLabel = New-Label "MPos: --" 20 80 280 24
 $workLabel = New-Label "WPos: --" 320 80 280 24
 $boundsLabel = New-Label "" 20 540 980 24
-$rawLabel = New-Label "Raw controller text:" 20 860 200 24
+$rawLabel = New-Label "Raw controller text:" 20 905 200 24
 $rawBox = New-Object System.Windows.Forms.TextBox
 $rawBox.Multiline = $true
 $rawBox.ScrollBars = "Vertical"
-$rawBox.Location = New-Object System.Drawing.Point(20, 885)
-$rawBox.Size = New-Object System.Drawing.Size(980, 130)
+$rawBox.Location = New-Object System.Drawing.Point(20, 930)
+$rawBox.Size = New-Object System.Drawing.Size(980, 145)
 $form.Controls.Add($rawBox)
 
 New-Label "Jog step (um)" 20 130 120 24 | Out-Null
@@ -350,24 +350,30 @@ $objectiveBox = New-TextBox "10x" 835 618 70 24
 
 New-Label "Operator" 20 655 80 24 | Out-Null
 $operatorBox = New-TextBox "" 105 653 170 24
-New-Label "Overlap" 300 655 55 24 | Out-Null
-$overlapBox = New-TextBox ([string]$scanOverlapFraction) 365 653 70 24
-New-Label "Photo root" 455 655 70 24 | Out-Null
-$photoRootBox = New-TextBox $scanPhotoRootDir 530 653 375 24
+New-Label "FOV W (um)" 300 655 75 24 | Out-Null
+$fovWidthBox = New-TextBox ([string]$scanFovWidthUm) 380 653 85 24
+New-Label "FOV H (um)" 485 655 75 24 | Out-Null
+$fovHeightBox = New-TextBox ([string]$scanFovHeightUm) 565 653 85 24
+New-Label "Overlap" 670 655 55 24 | Out-Null
+$overlapBox = New-TextBox ([string]$scanOverlapFraction) 730 653 70 24
 
-New-Label "Incoming hot folder" 20 690 120 24 | Out-Null
-$incomingBox = New-TextBox $incomingDir 145 688 760 24
+New-Label "Photo root" 20 690 70 24 | Out-Null
+$photoRootBox = New-TextBox $scanPhotoRootDir 105 688 800 24
+New-Label "Incoming hot folder" 20 725 120 24 | Out-Null
+$incomingBox = New-TextBox $incomingDir 145 723 760 24
 $incomingBox.ReadOnly = $true
 
-$markLeftEdgeButton = New-Button "Mark Left Edge" 20 730 120 36
-$markRightEdgeButton = New-Button "Mark Right Edge" 150 730 120 36
-$markTopEdgeButton = New-Button "Mark Top Edge" 280 730 120 36
-$markBottomEdgeButton = New-Button "Mark Bottom Edge" 410 730 120 36
-$saveScanButton = New-Button "Save Scan ROI" 540 730 120 36
-$startScanButton = New-Button "Start Scan" 670 730 120 36
-$scanLabel = New-Label "" 20 780 980 40
+$markLeftEdgeButton = New-Button "Mark Left Edge" 20 765 120 36
+$markRightEdgeButton = New-Button "Mark Right Edge" 150 765 120 36
+$markTopEdgeButton = New-Button "Mark Top Edge" 280 765 120 36
+$markBottomEdgeButton = New-Button "Mark Bottom Edge" 410 765 120 36
+$saveScanButton = New-Button "Save Scan ROI" 540 765 120 36
+$startScanButton = New-Button "Start Scan" 670 765 120 36
+$scanLabel = New-Label "" 20 815 980 40
 $scanLabel.AutoSize = $false
-$scanNotes = New-Label "" 20 820 980 28
+$scanStepLabel = New-Label "" 20 850 980 24
+$scanStepLabel.AutoSize = $false
+$scanNotes = New-Label "" 20 875 980 28
 $scanNotes.AutoSize = $false
 
 function Update-BoundsLabel {
@@ -394,7 +400,38 @@ function Get-TileCount {
     return [int]([math]::Ceiling(($ExtentUm - $FovUm) / $stepUm) + 1)
 }
 
+function Get-TextBoxDouble {
+    param(
+        [System.Windows.Forms.TextBox]$TextBox,
+        [double]$Default
+    )
+    try {
+        return [double]$TextBox.Text
+    }
+    catch {
+        return $Default
+    }
+}
+
+function Quote-ProcessArgument {
+    param([string]$Value)
+    if ($null -eq $Value) {
+        return '""'
+    }
+    return '"' + ($Value -replace '"', '""') + '"'
+}
+
 function Update-ScanLabel {
+    $fovWidthUm = [math]::Max((Get-TextBoxDouble -TextBox $fovWidthBox -Default $scanFovWidthUm), 1.0)
+    $fovHeightUm = [math]::Max((Get-TextBoxDouble -TextBox $fovHeightBox -Default $scanFovHeightUm), 1.0)
+    $overlap = Get-TextBoxDouble -TextBox $overlapBox -Default $scanOverlapFraction
+    if ($overlap -lt 0.0) { $overlap = 0.0 }
+    if ($overlap -ge 1.0) { $overlap = 0.95 }
+    $stepXUm = [math]::Max($fovWidthUm * (1.0 - $overlap), 1.0)
+    $stepYUm = [math]::Max($fovHeightUm * (1.0 - $overlap), 1.0)
+
+    $scanStepLabel.Text = "Step size: X={0:N1} um, Y={1:N1} um from FOV {2:N1} x {3:N1} um and overlap {4:P0}. Increase overlap if backlash or registration uncertainty could leave gaps." -f $stepXUm, $stepYUm, $fovWidthUm, $fovHeightUm, $overlap
+
     if ($null -eq $script:ScanMinXUm -or $null -eq $script:ScanMaxXUm -or $null -eq $script:ScanMinYUm -or $null -eq $script:ScanMaxYUm) {
         $scanLabel.Text = "Pending scan ROI: mark left, right, top, and bottom edges, then start the scan."
     }
@@ -405,19 +442,13 @@ function Update-ScanLabel {
         $bottomEdge = [double]$script:ScanMaxYUm
         $widthUm = [math]::Abs($leftEdge - $rightEdge)
         $heightUm = [math]::Abs($bottomEdge - $topEdge)
-        try {
-            $overlap = [double]$overlapBox.Text
-        }
-        catch {
-            $overlap = $scanOverlapFraction
-        }
-        $cols = Get-TileCount -ExtentUm $widthUm -FovUm $scanFovWidthUm -OverlapFraction $overlap
-        $rows = Get-TileCount -ExtentUm $heightUm -FovUm $scanFovHeightUm -OverlapFraction $overlap
+        $cols = Get-TileCount -ExtentUm $widthUm -FovUm $fovWidthUm -OverlapFraction $overlap
+        $rows = Get-TileCount -ExtentUm $heightUm -FovUm $fovHeightUm -OverlapFraction $overlap
         $scanLabel.Text = "Scan ROI: left={0:N0} um, right={1:N0} um, top={2:N0} um, bottom={3:N0} um. Size={4:N0} x {5:N0} um. Estimated raster={6} x {7} ({8} tiles)." -f $leftEdge, $rightEdge, $topEdge, $bottomEdge, $widthUm, $heightUm, $cols, $rows, ($cols * $rows)
     }
 
     if ($cameraDriver -eq "watched_folder") {
-        $scanNotes.Text = "Camera driver: watched_folder. Set EOS Utility once to save into $incomingDir. If camera.capture_command stays blank, each tile waits for the next new image in that folder."
+        $scanNotes.Text = "Camera driver: watched_folder. Set EOS Utility once to save into $incomingDir. With your current belt slack, start around 20-30% overlap if you want safer coverage."
     }
     else {
         $scanNotes.Text = "Camera driver: $cameraDriver. Start Scan will use the configured capture path for each tile."
@@ -551,6 +582,8 @@ function Save-ScanSettings {
     }
     try {
         $updates = @{
+            fov_width_um = [double]$fovWidthBox.Text
+            fov_height_um = [double]$fovHeightBox.Text
             overlap_fraction = [double]$overlapBox.Text
             photo_root_dir = [string]$photoRootBox.Text
             roi_min_x_um = [double]$script:ScanMinXUm
@@ -612,26 +645,28 @@ function Start-Scan {
     }
 
     $argList = @(
+        "-NoExit",
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
-        "-File", $launchScript,
-        "-Config", $Config,
-        "-SampleId", $sampleId,
-        "-Material", $material,
-        "-Substrate", $substrate,
-        "-Objective", $objective,
-        "-OutputRoot", $photoRoot,
-        "-RoiMinXUm", ('{0:0.###}' -f $script:ScanMinXUm),
-        "-RoiMaxXUm", ('{0:0.###}' -f $script:ScanMaxXUm),
-        "-RoiMinYUm", ('{0:0.###}' -f $script:ScanMinYUm),
-        "-RoiMaxYUm", ('{0:0.###}' -f $script:ScanMaxYUm)
+        "-File", (Quote-ProcessArgument $launchScript),
+        "-Config", (Quote-ProcessArgument $Config),
+        "-SampleId", (Quote-ProcessArgument $sampleId),
+        "-Material", (Quote-ProcessArgument $material),
+        "-Substrate", (Quote-ProcessArgument $substrate),
+        "-Objective", (Quote-ProcessArgument $objective),
+        "-OutputRoot", (Quote-ProcessArgument $photoRoot),
+        "-RoiMinXUm", (Quote-ProcessArgument ('{0:0.###}' -f $script:ScanMinXUm)),
+        "-RoiMaxXUm", (Quote-ProcessArgument ('{0:0.###}' -f $script:ScanMaxXUm)),
+        "-RoiMinYUm", (Quote-ProcessArgument ('{0:0.###}' -f $script:ScanMinYUm)),
+        "-RoiMaxYUm", (Quote-ProcessArgument ('{0:0.###}' -f $script:ScanMaxYUm))
     )
     if (-not [string]::IsNullOrWhiteSpace($operator)) {
-        $argList += @("-Operator", $operator)
+        $argList += @("-Operator", (Quote-ProcessArgument $operator))
     }
 
-    $process = Start-Process -FilePath "powershell.exe" -ArgumentList $argList -WorkingDirectory $repoRoot -PassThru
-    $rawBox.Text = "Started scan in a separate PowerShell window (PID $($process.Id)).`r`nPhoto root: $resolvedPhotoRoot`r`nIncoming hot folder: $incomingDir`r`nWatch the new console for live capture progress."
+    $argumentString = $argList -join " "
+    $process = Start-Process -FilePath "powershell.exe" -ArgumentList $argumentString -WorkingDirectory $repoRoot -PassThru
+    $rawBox.Text = "Started scan in a separate PowerShell window (PID $($process.Id)).`r`nPhoto root: $resolvedPhotoRoot`r`nIncoming hot folder: $incomingDir`r`nIf anything fails, the scan console will stay open and show the error."
 }
 
 $refreshButton.Add_Click({ Refresh-Status })
@@ -679,6 +714,8 @@ $markTopEdgeButton.Add_Click({ Capture-ScanEdge -FieldName "top_edge" })
 $markBottomEdgeButton.Add_Click({ Capture-ScanEdge -FieldName "bottom_edge" })
 $saveScanButton.Add_Click({ [void](Save-ScanSettings) })
 $startScanButton.Add_Click({ Start-Scan })
+$fovWidthBox.Add_TextChanged({ Update-ScanLabel })
+$fovHeightBox.Add_TextChanged({ Update-ScanLabel })
 $overlapBox.Add_TextChanged({ Update-ScanLabel })
 
 Update-BoundsLabel
