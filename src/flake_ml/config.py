@@ -13,6 +13,17 @@ class MotionConfig:
     baud: int = 115200
     travel_rate_um_s: float = 2500.0
     settle_time_ms: int = 250
+    startup_delay_ms: int = 500
+    jog_feed_mm_min: float = 30.0
+    x_max_rate_mm_min: float | None = None
+    y_max_rate_mm_min: float | None = None
+    x_accel_mm_s2: float | None = None
+    y_accel_mm_s2: float | None = None
+    min_x_um: float = 0.0
+    min_y_um: float = 0.0
+    max_x_um: float | None = None
+    max_y_um: float | None = None
+    safety_margin_um: float = 500.0
 
 
 @dataclass(slots=True)
@@ -20,6 +31,11 @@ class CameraConfig:
     driver: str = "external_command"
     capture_command: str = ""
     output_extension: str = ".jpg"
+    capture_timeout_s: float = 45.0
+    incoming_dir: str = ""
+    watch_timeout_s: float = 30.0
+    watch_stability_ms: int = 500
+    watch_extensions: str = ".jpg,.jpeg,.png,.tif,.tiff"
 
 
 @dataclass(slots=True)
@@ -29,6 +45,12 @@ class ScanConfig:
     overlap_fraction: float = 0.12
     origin_x_um: float = 0.0
     origin_y_um: float = 0.0
+    photo_root_dir: str = "photos/scans"
+    allow_out_of_bounds: bool = False
+    roi_min_x_um: float | None = None
+    roi_max_x_um: float | None = None
+    roi_min_y_um: float | None = None
+    roi_max_y_um: float | None = None
 
 
 @dataclass(slots=True)
@@ -92,4 +114,3 @@ def load_lab_config(path: str | Path) -> LabConfig:
         detector=detector,
         substrates=substrates,
     )
-

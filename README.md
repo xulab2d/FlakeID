@@ -27,6 +27,11 @@ It also leaves clean interfaces for stronger models and remote training later.
 - [docs/data_and_human_loop.md](docs/data_and_human_loop.md)
 - [docs/bringup_checklist.md](docs/bringup_checklist.md)
 - [docs/scanning_protocol.md](docs/scanning_protocol.md)
+- [docs/stage_bounds_protocol.md](docs/stage_bounds_protocol.md)
+- [docs/stage_calibration_ui.md](docs/stage_calibration_ui.md)
+- [docs/camera_pathway.md](docs/camera_pathway.md)
+- [docs/data_collection_workflow.md](docs/data_collection_workflow.md)
+- [docs/drift_correction.md](docs/drift_correction.md)
 - [docs/hardware_probe_notes.md](docs/hardware_probe_notes.md)
 - [docs/repo_push_setup.md](docs/repo_push_setup.md)
 - [configs/lab.example.toml](configs/lab.example.toml)
@@ -52,6 +57,24 @@ Create a scan plan:
   --output outputs/scan_plan.json
 ```
 
+Open the stage calibration UI:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\launch_stage_ui.ps1 `
+  -Config configs/lab.example.toml
+```
+
+Run a capture scan over a saved scan ROI:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli run-scan `
+  --config configs/lab.example.toml `
+  --sample-id graphene_grid_001 `
+  --material graphene `
+  --substrate graphene_285_wet `
+  --objective 10x
+```
+
 Detect candidates in one image:
 
 ```powershell
@@ -60,6 +83,46 @@ Detect candidates in one image:
   --config configs/lab.example.toml `
   --output-json outputs\image_candidates.json `
   --overlay outputs\image_overlay.png
+```
+
+Probe the connected camera and installed Canon tooling:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli camera-probe
+```
+
+Create a session scaffold for a new data-collection run:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli init-session `
+  --config configs/lab.example.toml `
+  --output-root outputs\sessions `
+  --sample-id graphene_trial_001 `
+  --material graphene `
+  --substrate graphene_285_wet `
+  --objective 10x `
+  --operator xulab
+```
+
+Estimate residual overlap shift between neighboring tiles:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli estimate-shift `
+  path\to\left_tile.jpg `
+  path\to\right_tile.jpg `
+  --axis x `
+  --overlap-fraction 0.12
+```
+
+Score a z-stack or focus bracket with autofocus metrics:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli focus-score `
+  path\to\zminus.jpg `
+  path\to\z0.jpg `
+  path\to\zplus.jpg `
+  --metric tenengrad `
+  --crop-fraction 0.5
 ```
 
 Replay a folder of microscope images into a catalog:
@@ -81,10 +144,49 @@ Export reviewed candidates to COCO:
   --output outputs\coco_candidates.json
 ```
 
+Open the manual review UI for a scan session:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli review-images `
+  --session-dir photos\scans\20260424T024315Z_flake_grid_001
+```
+
+Export manual review boxes to COCO:
+
+```powershell
+& 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli export-manual-coco `
+  --review-path photos\scans\20260424T024315Z_flake_grid_001\labels\manual_annotations.json `
+  --output outputs\manual_annotations.coco.json
+```
+
+## Photo Storage
+
+- `photos/incoming`: fallback hot folder for EOS Utility download handoff
+- `photos/scans/<timestamp>_<sample_id>`: one folder per scan with tiles, logs, QC, and catalog files
+- `photos/scans/<timestamp>_<sample_id>/labels/manual_annotations.json`: manual flake review output from the built-in reviewer UI
+
+The `photos/` tree is gitignored.
+
+## Direct Canon Capture
+
+The preferred camera path on this workstation is now the local Canon SDK helper:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\canon_sdk_capture.ps1 -Probe
+```
+
+For a direct still-image test:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\canon_sdk_capture.ps1 `
+  -Output outputs\camera_test.jpg
+```
+
+Close `EOS Utility` or any Canon live-view window before using the direct SDK path, because the camera session is exclusive.
+
 ## What This Does Not Yet Solve
 
 - autofocus for Z
-- direct Canon tether capture without a configured external capture command
 - robust multilayer thickness regression
 - remote model training orchestration
 - scan-time stitch mosaics
