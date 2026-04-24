@@ -9,9 +9,14 @@ from ..annotation.manual import (
     ManualImageAnnotation,
     ManualObjectAnnotation,
     VALID_OBJECT_LABELS,
+    VALID_PRIORITY_CLASSES,
+    VALID_SHAPE_CLASSES,
+    VALID_SIZE_CLASSES,
+    VALID_THICKNESS_BINS,
     VALID_TILE_LABELS,
     discover_images,
     load_manual_annotations,
+    normalize_choice,
     save_manual_annotations,
 )
 from ..utils import timestamp_utc
@@ -35,15 +40,48 @@ TILE_LABEL_SHORTCUTS = (
 
 
 def _normalize_object_label(value: object, fallback: str) -> str:
-    label = str(value).strip() if value is not None else ""
-    if label in VALID_OBJECT_LABELS:
-        return label
-    return fallback if fallback in VALID_OBJECT_LABELS else VALID_OBJECT_LABELS[0]
+    return normalize_choice(value, VALID_OBJECT_LABELS, fallback)
 
 
 def _sanitize_shape_labels(raw_labels: list[object], count: int, fallback: str) -> list[str]:
     return [
         _normalize_object_label(raw_labels[index] if index < len(raw_labels) else None, fallback)
+        for index in range(count)
+    ]
+
+
+OBJECT_PROPERTY_ORDER = (
+    "label",
+    "thickness_bin",
+    "size_class",
+    "shape_class",
+    "priority",
+)
+
+OBJECT_PROPERTY_OPTIONS = {
+    "label": VALID_OBJECT_LABELS,
+    "thickness_bin": VALID_THICKNESS_BINS,
+    "size_class": VALID_SIZE_CLASSES,
+    "shape_class": VALID_SHAPE_CLASSES,
+    "priority": VALID_PRIORITY_CLASSES,
+}
+
+OBJECT_PROPERTY_LABELS = {
+    "label": "Flake Label",
+    "thickness_bin": "Thickness",
+    "size_class": "Size",
+    "shape_class": "Shape",
+    "priority": "Priority",
+}
+
+
+def _normalize_feature_value(key: str, value: object, fallback: str) -> str:
+    return normalize_choice(value, OBJECT_PROPERTY_OPTIONS[key], fallback)
+
+
+def _sanitize_feature_values(key: str, raw_values: list[object], count: int, fallback: str) -> list[str]:
+    return [
+        _normalize_feature_value(key, raw_values[index] if index < len(raw_values) else None, fallback)
         for index in range(count)
     ]
 
@@ -93,25 +131,25 @@ def _from_napari_vertices(vertices_rc: np.ndarray) -> list[tuple[float, float]]:
     return vertices_xy
 
 
-def _labels_from_features(layer) -> list[str]:
+def _feature_values_from_layer(layer, key: str) -> list[object]:
     features = getattr(layer, "features", None)
     if features is None:
         return []
     values = None
     if isinstance(features, dict):
-        values = features.get("label", [])
+        values = features.get(key, [])
     else:
         try:
-            values = features["label"]
+            values = features[key]
         except Exception:
             getter = getattr(features, "get", None)
             if getter is not None:
-                values = getter("label", [])
+                values = getter(key, [])
     if values is None:
         return []
     if hasattr(values, "tolist"):
         values = values.tolist()
-    return [str(value) for value in list(values)]
+    return list(values)
 
 
 def _shape_types_from_layer(layer) -> list[str]:
@@ -137,6 +175,7 @@ class NapariReviewApp:
         self.image_layer = None
         self.shapes_layer = None
         self._is_loading_layer = False
+        self.object_property_widgets: dict[str, object] = {}
 
         self.dock_widget = self._build_ui()
         self._install_shortcuts()
@@ -190,15 +229,17 @@ class NapariReviewApp:
         self.tile_label_combo.addItems(list(VALID_TILE_LABELS))
         layout.addWidget(self.tile_label_combo)
 
-        object_label = QLabel("Flake Label")
-        layout.addWidget(object_label)
-        self.object_label_combo = QComboBox()
-        self.object_label_combo.addItems(list(VALID_OBJECT_LABELS))
-        self.object_label_combo.currentTextChanged.connect(self._on_object_label_changed)
-        layout.addWidget(self.object_label_combo)
+        for key in OBJECT_PROPERTY_ORDER:
+            property_label = QLabel(OBJECT_PROPERTY_LABELS[key])
+            layout.addWidget(property_label)
+            combo = QComboBox()
+            combo.addItems(list(OBJECT_PROPERTY_OPTIONS[key]))
+            combo.currentTextChanged.connect(lambda _value, property_key=key: self._on_object_property_changed(property_key))
+            layout.addWidget(combo)
+            self.object_property_widgets[key] = combo
 
-        self.apply_label_button = QPushButton("Apply Label To Selected")
-        self.apply_label_button.clicked.connect(self._apply_label_to_selected)
+        self.apply_label_button = QPushButton("Apply Metadata To Selected")
+        self.apply_label_button.clicked.connect(self._apply_metadata_to_selected)
         layout.addWidget(self.apply_label_button)
 
         notes_label = QLabel("Notes")
@@ -220,6 +261,7 @@ class NapariReviewApp:
             "Tile labels distinguish empty substrate from off-target and bad-focus frames.\n"
             "napari keys: P polygon, R rectangle, S select, Delete removes selected shapes.\n"
             "Review keys: 1 empty_substrate, 2 flake_present, 3 off_target, 4 bad_focus, 5 artifact, 6 unsure.\n"
+            "Set label, thickness, size, shape, and priority in the dock, then click Apply Metadata To Selected.\n"
             "This tool saves polygons into manual_annotations.json for later COCO export."
         )
         help_label.setWordWrap(True)
@@ -250,49 +292,78 @@ class NapariReviewApp:
             self.annotations[key] = ManualImageAnnotation(image_path=key)
         return self.annotations[key]
 
-    def _current_shape_labels(self) -> list[str]:
+    def _property_widget_value(self, key: str) -> str:
+        widget = self.object_property_widgets[key]
+        return str(widget.currentText())
+
+    def _current_shape_feature_values(self, key: str) -> list[str]:
         if self.shapes_layer is None:
             return []
-        labels = _labels_from_features(self.shapes_layer)
+        values = _feature_values_from_layer(self.shapes_layer, key)
         count = len(self.shapes_layer.data)
-        return _sanitize_shape_labels(labels, count, self.object_label_combo.currentText())
+        return _sanitize_feature_values(key, values, count, self._property_widget_value(key))
 
-    def _set_shape_labels(self, labels: list[str]) -> None:
+    def _current_shape_features(self) -> dict[str, list[str]]:
+        if self.shapes_layer is None:
+            return {key: [] for key in OBJECT_PROPERTY_ORDER}
+        return {
+            key: self._current_shape_feature_values(key)
+            for key in OBJECT_PROPERTY_ORDER
+        }
+
+    def _set_shape_features(self, feature_values: dict[str, list[str]]) -> None:
         if self.shapes_layer is None:
             return
-        sanitized = _sanitize_shape_labels(labels, len(self.shapes_layer.data), self.object_label_combo.currentText())
+        count = len(self.shapes_layer.data)
+        sanitized = {
+            key: _sanitize_feature_values(key, feature_values.get(key, []), count, self._property_widget_value(key))
+            for key in OBJECT_PROPERTY_ORDER
+        }
         try:
-            self.shapes_layer.features = {"label": np.asarray(sanitized, dtype=object)}
+            self.shapes_layer.features = {
+                key: np.asarray(values, dtype=object)
+                for key, values in sanitized.items()
+            }
         except Exception:
             pass
 
-    def _set_current_object_label(self, label: str) -> None:
-        label = _normalize_object_label(label, VALID_OBJECT_LABELS[0])
-        self.object_label_combo.blockSignals(True)
-        self.object_label_combo.setCurrentText(label)
-        self.object_label_combo.blockSignals(False)
+    def _set_property_widget_value(self, key: str, value: object) -> None:
+        widget = self.object_property_widgets[key]
+        normalized = _normalize_feature_value(key, value, OBJECT_PROPERTY_OPTIONS[key][0])
+        widget.blockSignals(True)
+        widget.setCurrentText(normalized)
+        widget.blockSignals(False)
+
+    def _current_property_defaults(self) -> dict[str, np.ndarray]:
+        return {
+            key: np.asarray([self._property_widget_value(key)], dtype=object)
+            for key in OBJECT_PROPERTY_ORDER
+        }
+
+    def _set_current_feature_defaults(self) -> None:
         if self.shapes_layer is None:
             return
-        values = np.asarray([label], dtype=object)
+        defaults = self._current_property_defaults()
         try:
-            self.shapes_layer.current_properties = {"label": values}
+            self.shapes_layer.current_properties = defaults
         except Exception:
             pass
         try:
-            self.shapes_layer.feature_defaults = {"label": values}
+            self.shapes_layer.feature_defaults = defaults
         except Exception:
             pass
 
     def _refresh_shape_styles(self) -> None:
         if self.shapes_layer is None:
             return
-        labels = self._current_shape_labels()
-        self._set_shape_labels(labels)
+        feature_values = self._current_shape_features()
+        labels = feature_values.get("label", [])
+        self._set_shape_features(feature_values)
         if labels:
             colors = [OBJECT_LABEL_COLORS.get(label, "#ffffff") for label in labels]
             self.shapes_layer.edge_color = colors
         else:
-            self.shapes_layer.edge_color = OBJECT_LABEL_COLORS.get(self.object_label_combo.currentText(), "#ffffff")
+            self.shapes_layer.edge_color = OBJECT_LABEL_COLORS.get(self._property_widget_value("label"), "#ffffff")
         try:
             self.shapes_layer.face_color = "transparent"
         except Exception:
@@ -302,10 +373,13 @@ class NapariReviewApp:
         except Exception:
             pass
 
-    def _annotation_objects_to_layer_payload(self, objects: list[ManualObjectAnnotation]) -> tuple[list[np.ndarray], list[str], list[str]]:
+    def _annotation_objects_to_layer_payload(
+        self,
+        objects: list[ManualObjectAnnotation],
+    ) -> tuple[list[np.ndarray], list[str], dict[str, list[str]]]:
         data: list[np.ndarray] = []
         shape_types: list[str] = []
-        labels: list[str] = []
+        feature_values = {key: [] for key in OBJECT_PROPERTY_ORDER}
         for item in objects:
             vertices_xy = item.display_vertices_xy
             if not vertices_xy:
@@ -317,14 +391,19 @@ class NapariReviewApp:
                 shape_types.append("polygon")
             else:
                 shape_types.append("rectangle")
-            labels.append(item.label if item.label in VALID_OBJECT_LABELS else VALID_OBJECT_LABELS[0])
-        return data, shape_types, labels
+            feature_values["label"].append(item.label)
+            feature_values["thickness_bin"].append(item.thickness_bin)
+            feature_values["size_class"].append(item.size_class)
+            feature_values["shape_class"].append(item.shape_class)
+            feature_values["priority"].append(item.priority)
+        return data, shape_types, feature_values
 
     def _rebuild_shapes_layer(self) -> None:
         if self.current_image_path is None:
             return
         annotation = self._annotation_for(self.current_image_path)
-        shape_data, shape_types, shape_labels = self._annotation_objects_to_layer_payload(annotation.objects)
+        shape_data, shape_types, feature_values = self._annotation_objects_to_layer_payload(annotation.objects)
+        shape_labels = feature_values["label"]
 
         self._is_loading_layer = True
         try:
@@ -337,13 +416,19 @@ class NapariReviewApp:
                 edge_width=2.0,
                 edge_color=[OBJECT_LABEL_COLORS.get(label, "#ffffff") for label in shape_labels]
                 if shape_labels
-                else OBJECT_LABEL_COLORS.get(self.object_label_combo.currentText(), "#ffffff"),
+                else OBJECT_LABEL_COLORS.get(self._property_widget_value("label"), "#ffffff"),
                 face_color="transparent",
-                features={"label": np.asarray(shape_labels, dtype=object)},
-                property_choices={"label": np.asarray(VALID_OBJECT_LABELS, dtype=object)},
+                features={
+                    key: np.asarray(values, dtype=object)
+                    for key, values in feature_values.items()
+                },
+                property_choices={
+                    key: np.asarray(options, dtype=object)
+                    for key, options in OBJECT_PROPERTY_OPTIONS.items()
+                },
             )
             self.shapes_layer.events.data.connect(self._on_shapes_changed)
-            self._set_current_object_label(self.object_label_combo.currentText())
+            self._set_current_feature_defaults()
             self._refresh_shape_styles()
             self.shapes_layer.mode = "select"
         finally:
@@ -367,6 +452,10 @@ class NapariReviewApp:
             annotation.tile_label if annotation.tile_label in VALID_TILE_LABELS else "unreviewed"
         )
         self.notes_edit.setPlainText(annotation.notes)
+        first_object = annotation.objects[0] if annotation.objects else None
+        for key in OBJECT_PROPERTY_ORDER:
+            default_value = getattr(first_object, key, OBJECT_PROPERTY_OPTIONS[key][0]) if first_object else OBJECT_PROPERTY_OPTIONS[key][0]
+            self._set_property_widget_value(key, default_value)
         self.path_label.setText(f"Image root: {self.image_dir}\nCurrent image: {image_path}")
         self._rebuild_shapes_layer()
         self._update_status()
@@ -386,32 +475,31 @@ class NapariReviewApp:
         self.shapes_layer.mode = mode
         self._update_status(extra=f"Mode: {mode}")
 
-    def _on_object_label_changed(self, label: str) -> None:
-        self._set_current_object_label(label)
-        self._update_status(extra=f"New shapes will use label: {label}")
+    def _on_object_property_changed(self, key: str) -> None:
+        self._set_current_feature_defaults()
+        self._update_status(extra=f"New shapes will use {OBJECT_PROPERTY_LABELS[key].lower()}: {self._property_widget_value(key)}")
 
-    def _apply_label_to_selected(self) -> None:
+    def _apply_metadata_to_selected(self) -> None:
         if self.shapes_layer is None:
             return
-        selected_label = _normalize_object_label(self.object_label_combo.currentText(), VALID_OBJECT_LABELS[0])
         self.shapes_layer.mode = "select"
-        labels = self._current_shape_labels()
+        feature_values = self._current_shape_features()
         selected = sorted(int(index) for index in self.shapes_layer.selected_data)
         if selected:
-            for index in selected:
-                if 0 <= index < len(labels):
-                    labels[index] = selected_label
-            self._set_shape_labels(labels)
-        self.shapes_layer.current_properties = {"label": np.asarray([selected_label], dtype=object)}
-        try:
-            self.shapes_layer.feature_defaults = {"label": np.asarray([selected_label], dtype=object)}
-        except Exception:
-            pass
+            for key in OBJECT_PROPERTY_ORDER:
+                selected_value = self._property_widget_value(key)
+                values = feature_values[key]
+                for index in selected:
+                    if 0 <= index < len(values):
+                        values[index] = selected_value
+            self._set_shape_features(feature_values)
+        self._set_current_feature_defaults()
         self._refresh_shape_styles()
         if selected:
-            self._update_status(extra=f"Applied label '{selected_label}' to {len(selected)} selected shape(s).")
+            summary = ", ".join(f"{OBJECT_PROPERTY_LABELS[key].lower()}={self._property_widget_value(key)}" for key in OBJECT_PROPERTY_ORDER)
+            self._update_status(extra=f"Applied metadata ({summary}) to {len(selected)} selected shape(s).")
         else:
-            self._update_status(extra=f"New shapes will use label: {selected_label}")
+            self._update_status(extra="Updated defaults for new shapes.")
 
     def _on_shapes_changed(self, _event=None) -> None:
         if self._is_loading_layer:
@@ -422,18 +510,22 @@ class NapariReviewApp:
     def _objects_from_layer(self) -> list[ManualObjectAnnotation]:
         if self.shapes_layer is None:
             return []
-        labels = self._current_shape_labels()
+        feature_values = self._current_shape_features()
         shape_types = _shape_types_from_layer(self.shapes_layer)
         objects: list[ManualObjectAnnotation] = []
         for index, raw_vertices in enumerate(list(self.shapes_layer.data)):
             vertices_xy = _from_napari_vertices(np.asarray(raw_vertices, dtype=np.float32))
-            label = labels[index] if index < len(labels) else self.object_label_combo.currentText()
+            label = feature_values["label"][index] if index < len(feature_values["label"]) else self._property_widget_value("label")
             shape_type = shape_types[index] if index < len(shape_types) else "polygon"
             objects.append(
                 ManualObjectAnnotation(
                     label=label,
                     shape_type=shape_type,
                     vertices_xy=vertices_xy,
+                    thickness_bin=feature_values["thickness_bin"][index] if index < len(feature_values["thickness_bin"]) else "unknown",
+                    size_class=feature_values["size_class"][index] if index < len(feature_values["size_class"]) else "unknown",
+                    shape_class=feature_values["shape_class"][index] if index < len(feature_values["shape_class"]) else "unknown",
+                    priority=feature_values["priority"][index] if index < len(feature_values["priority"]) else "unknown",
                 )
             )
         return objects

@@ -44,7 +44,16 @@ class ManualAnnotationTests(unittest.TestCase):
             str(image_a.resolve()): ManualImageAnnotation(
                 image_path=str(image_a.resolve()),
                 tile_label="flake_present",
-                objects=[ManualObjectAnnotation(label="graphene", bbox_xywh=(10, 20, 30, 40))],
+                objects=[
+                    ManualObjectAnnotation(
+                        label="graphene",
+                        bbox_xywh=(10, 20, 30, 40),
+                        thickness_bin="mono",
+                        size_class="usable",
+                        shape_class="channel_candidate",
+                        priority="device_candidate",
+                    )
+                ],
             ),
             str(image_b.resolve()): ManualImageAnnotation(
                 image_path=str(image_b.resolve()),
@@ -54,6 +63,10 @@ class ManualAnnotationTests(unittest.TestCase):
                         label="hbn",
                         shape_type="polygon",
                         vertices_xy=[(5, 5), (35, 5), (28, 22), (12, 28)],
+                        thickness_bin="few_layer",
+                        size_class="small",
+                        shape_class="bottom_gate_candidate",
+                        priority="review",
                     )
                 ],
             ),
@@ -67,9 +80,15 @@ class ManualAnnotationTests(unittest.TestCase):
         self.assertTrue(review_path.exists())
 
         reloaded = load_manual_annotations(review_path)
+        box_object = reloaded[str(image_a.resolve())].objects[0]
         polygon_object = reloaded[str(image_b.resolve())].objects[0]
+        self.assertEqual(box_object.thickness_bin, "mono")
+        self.assertEqual(box_object.size_class, "usable")
+        self.assertEqual(box_object.shape_class, "channel_candidate")
+        self.assertEqual(box_object.priority, "device_candidate")
         self.assertEqual(polygon_object.shape_type, "polygon")
         self.assertEqual(polygon_object.bbox_xywh, (5, 5, 30, 23))
+        self.assertEqual(polygon_object.shape_class, "bottom_gate_candidate")
 
         coco_path = workspace / "labels" / "manual_annotations.coco.json"
         payload = export_manual_annotations_to_coco(review_path, coco_path)
@@ -83,6 +102,8 @@ class ManualAnnotationTests(unittest.TestCase):
         )
         self.assertEqual(len(polygon_annotation["segmentation"][0]), 8)
         self.assertGreater(polygon_annotation["area"], 0.0)
+        self.assertEqual(polygon_annotation["attributes"]["shape_class"], "bottom_gate_candidate")
+        self.assertEqual(polygon_annotation["attributes"]["priority"], "review")
 
         saved = json.loads(coco_path.read_text(encoding="utf-8"))
         self.assertEqual(len(saved["annotations"]), 2)

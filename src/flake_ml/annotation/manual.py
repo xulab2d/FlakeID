@@ -33,6 +33,37 @@ VALID_OBJECT_LABELS = (
     "artifact",
 )
 
+VALID_THICKNESS_BINS = (
+    "unknown",
+    "mono",
+    "bi",
+    "few_layer",
+    "thick",
+)
+
+VALID_SIZE_CLASSES = (
+    "unknown",
+    "tiny",
+    "small",
+    "usable",
+    "large",
+)
+
+VALID_SHAPE_CLASSES = (
+    "unknown",
+    "bottom_gate_candidate",
+    "channel_candidate",
+    "irregular",
+    "fragmented",
+)
+
+VALID_PRIORITY_CLASSES = (
+    "unknown",
+    "ignore",
+    "review",
+    "device_candidate",
+)
+
 
 def normalize_tile_label(value: str) -> str:
     label = str(value or "unreviewed").strip().lower()
@@ -41,6 +72,14 @@ def normalize_tile_label(value: str) -> str:
     if label in VALID_TILE_LABELS:
         return label
     return "unreviewed"
+
+
+def normalize_choice(value: object, valid_values: Iterable[str], default_value: str) -> str:
+    label = str(value).strip() if value is not None else ""
+    valid_set = set(valid_values)
+    if label in valid_set:
+        return label
+    return default_value if default_value in valid_set else next(iter(valid_values))
 
 
 def normalize_vertices(vertices_xy: Iterable[Iterable[float]]) -> list[tuple[float, float]]:
@@ -91,12 +130,20 @@ class ManualObjectAnnotation:
     bbox_xywh: tuple[int, int, int, int] = (0, 0, 0, 0)
     shape_type: str = "bbox"
     vertices_xy: list[tuple[float, float]] = field(default_factory=list)
+    thickness_bin: str = "unknown"
+    size_class: str = "unknown"
+    shape_class: str = "unknown"
+    priority: str = "unknown"
 
     def __post_init__(self) -> None:
-        self.label = str(self.label)
+        self.label = normalize_choice(self.label, VALID_OBJECT_LABELS, VALID_OBJECT_LABELS[0])
         self.vertices_xy = normalize_vertices(self.vertices_xy)
         inferred_shape_type = "polygon" if self.vertices_xy else "bbox"
         self.shape_type = str(self.shape_type or inferred_shape_type)
+        self.thickness_bin = normalize_choice(self.thickness_bin, VALID_THICKNESS_BINS, "unknown")
+        self.size_class = normalize_choice(self.size_class, VALID_SIZE_CLASSES, "unknown")
+        self.shape_class = normalize_choice(self.shape_class, VALID_SHAPE_CLASSES, "unknown")
+        self.priority = normalize_choice(self.priority, VALID_PRIORITY_CLASSES, "unknown")
         if self.vertices_xy:
             self.bbox_xywh = bbox_from_vertices(self.vertices_xy)
         else:
@@ -108,6 +155,10 @@ class ManualObjectAnnotation:
             "label": self.label,
             "bbox_xywh": list(self.bbox_xywh),
             "shape_type": self.shape_type,
+            "thickness_bin": self.thickness_bin,
+            "size_class": self.size_class,
+            "shape_class": self.shape_class,
+            "priority": self.priority,
         }
         if self.vertices_xy:
             payload["vertices_xy"] = [[x, y] for x, y in self.vertices_xy]
@@ -122,6 +173,10 @@ class ManualObjectAnnotation:
             bbox_xywh=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
             shape_type=str(payload.get("shape_type", "polygon" if raw_vertices else "bbox")),
             vertices_xy=raw_vertices,
+            thickness_bin=str(payload.get("thickness_bin", "unknown")),
+            size_class=str(payload.get("size_class", "unknown")),
+            shape_class=str(payload.get("shape_class", "unknown")),
+            priority=str(payload.get("priority", "unknown")),
         )
 
     @property
@@ -264,6 +319,12 @@ def export_manual_annotations_to_coco(
                     "area": item.area_px,
                     "iscrowd": 0,
                     "segmentation": [item.segmentation_xy],
+                    "attributes": {
+                        "thickness_bin": item.thickness_bin,
+                        "size_class": item.size_class,
+                        "shape_class": item.shape_class,
+                        "priority": item.priority,
+                    },
                 }
             )
             annotation_id += 1

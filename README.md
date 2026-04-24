@@ -171,6 +171,15 @@ Recommended tile labels:
 
 Object labels stay flake-specific: `graphene`, `hbn`, `other_flake`, and `artifact`.
 
+The napari reviewer also supports object-level metadata for downstream ranking:
+
+- `thickness_bin`: `unknown`, `mono`, `bi`, `few_layer`, `thick`
+- `size_class`: `unknown`, `tiny`, `small`, `usable`, `large`
+- `shape_class`: `unknown`, `bottom_gate_candidate`, `channel_candidate`, `irregular`, `fragmented`
+- `priority`: `unknown`, `ignore`, `review`, `device_candidate`
+
+Set those in the dock and click `Apply Metadata To Selected` after selecting one or more flakes.
+
 Export manual review polygons or boxes to COCO:
 
 ```powershell
