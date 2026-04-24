@@ -86,6 +86,66 @@ def _sanitize_feature_values(key: str, raw_values: list[object], count: int, fal
     ]
 
 
+def _image_key(image_path: str | Path) -> str:
+    return str(Path(image_path).resolve())
+
+
+def _annotation_is_reviewed(annotation: ManualImageAnnotation | None) -> bool:
+    if annotation is None:
+        return False
+    return annotation.tile_label != "unreviewed" or bool(annotation.objects) or bool(annotation.notes.strip())
+
+
+def _find_resume_index(images: list[Path], annotations: dict[str, ManualImageAnnotation]) -> int:
+    if not images:
+        return 0
+    keyed_annotations = {
+        _image_key(image_path): annotation
+        for image_path, annotation in annotations.items()
+    }
+    latest_index = 0
+    latest_updated = ""
+    for index, image_path in enumerate(images):
+        annotation = keyed_annotations.get(_image_key(image_path))
+        if annotation is None:
+            continue
+        updated = str(annotation.updated_utc or "")
+        if updated and updated >= latest_updated:
+            latest_updated = updated
+            latest_index = index
+    if latest_updated:
+        return latest_index
+    for index, image_path in enumerate(images):
+        if _annotation_is_reviewed(keyed_annotations.get(_image_key(image_path))):
+            latest_index = index
+    return latest_index
+
+
+def _resolve_jump_index(images: list[Path], query: str) -> tuple[int | None, str | None]:
+    if not images:
+        return None, "No images are loaded."
+    value = str(query or "").strip()
+    if not value:
+        return None, "Type an image number or part of a filename."
+    if value.isdigit():
+        requested = int(value)
+        if 1 <= requested <= len(images):
+            return requested - 1, None
+        return None, f"Image number {requested} is outside 1-{len(images)}."
+
+    normalized = value.lower()
+    matches = [
+        index
+        for index, image_path in enumerate(images)
+        if normalized in image_path.name.lower()
+    ]
+    if len(matches) == 1:
+        return matches[0], None
+    if len(matches) > 1:
+        return None, f"'{value}' matches {len(matches)} images. Use a more specific filename fragment."
+    return None, f"No image name contains '{value}'."
+
+
 def _import_napari_modules():
     try:
         import napari
@@ -94,6 +154,7 @@ def _import_napari_modules():
             QComboBox,
             QHBoxLayout,
             QLabel,
+            QLineEdit,
             QMessageBox,
             QPushButton,
             QTextEdit,
@@ -111,6 +172,7 @@ def _import_napari_modules():
         "QHBoxLayout": QHBoxLayout,
         "QKeySequence": QKeySequence,
         "QLabel": QLabel,
+        "QLineEdit": QLineEdit,
         "QMessageBox": QMessageBox,
         "QPushButton": QPushButton,
         "QShortcut": QShortcut,
@@ -170,7 +232,8 @@ class NapariReviewApp:
             raise FileNotFoundError(f"No images were found in {self.image_dir}")
 
         self.annotations = load_manual_annotations(self.output_path)
-        self.index = 0
+        self.index = _find_resume_index(self.images, self.annotations)
+        self.resume_index = self.index
         self.current_image_path: Path | None = None
         self.image_layer = None
         self.shapes_layer = None
@@ -186,6 +249,7 @@ class NapariReviewApp:
         QVBoxLayout = self.widgets["QVBoxLayout"]
         QHBoxLayout = self.widgets["QHBoxLayout"]
         QLabel = self.widgets["QLabel"]
+        QLineEdit = self.widgets["QLineEdit"]
         QPushButton = self.widgets["QPushButton"]
         QComboBox = self.widgets["QComboBox"]
         QTextEdit = self.widgets["QTextEdit"]
@@ -207,6 +271,19 @@ class NapariReviewApp:
         self.save_button.clicked.connect(self.save_all)
         nav_row.addWidget(self.save_button)
         layout.addLayout(nav_row)
+
+        jump_row = QHBoxLayout()
+        self.jump_input = QLineEdit()
+        self.jump_input.setPlaceholderText("Image # or filename")
+        self.jump_input.returnPressed.connect(self._jump_to_query)
+        jump_row.addWidget(self.jump_input)
+        self.jump_button = QPushButton("Jump")
+        self.jump_button.clicked.connect(self._jump_to_query)
+        jump_row.addWidget(self.jump_button)
+        self.resume_button = QPushButton("Resume")
+        self.resume_button.clicked.connect(self.jump_to_resume)
+        jump_row.addWidget(self.resume_button)
+        layout.addLayout(jump_row)
 
         mode_row = QHBoxLayout()
         self.select_button = QPushButton("Select")
@@ -281,10 +358,19 @@ class NapariReviewApp:
         next_shortcut.activated.connect(self.next_image)
         prev_shortcut = QShortcut(QKeySequence("["), parent)
         prev_shortcut.activated.connect(self.prev_image)
+        focus_jump_shortcut = QShortcut(QKeySequence("Ctrl+L"), parent)
+        focus_jump_shortcut.activated.connect(self.jump_input.setFocus)
+        execute_jump_shortcut = QShortcut(QKeySequence("Ctrl+G"), parent)
+        execute_jump_shortcut.activated.connect(self._jump_to_query)
+        resume_shortcut = QShortcut(QKeySequence("Ctrl+J"), parent)
+        resume_shortcut.activated.connect(self.jump_to_resume)
         for key, label in TILE_LABEL_SHORTCUTS:
             label_shortcut = QShortcut(QKeySequence(key), parent)
             label_shortcut.activated.connect(lambda tile_label=label: self._set_tile_label(tile_label))
             setattr(self, f"_tile_shortcut_{key}", label_shortcut)
+        self._focus_jump_shortcut = focus_jump_shortcut
+        self._execute_jump_shortcut = execute_jump_shortcut
+        self._resume_shortcut = resume_shortcut
 
     def _annotation_for(self, image_path: Path) -> ManualImageAnnotation:
         key = str(image_path.resolve())
@@ -456,7 +542,11 @@ class NapariReviewApp:
         for key in OBJECT_PROPERTY_ORDER:
             default_value = getattr(first_object, key, OBJECT_PROPERTY_OPTIONS[key][0]) if first_object else OBJECT_PROPERTY_OPTIONS[key][0]
             self._set_property_widget_value(key, default_value)
-        self.path_label.setText(f"Image root: {self.image_dir}\nCurrent image: {image_path}")
+        self.path_label.setText(
+            f"Image root: {self.image_dir}\n"
+            f"Current image ({self.index + 1}/{len(self.images)}): {image_path.name}\n"
+            f"Full path: {image_path}"
+        )
         self._rebuild_shapes_layer()
         self._update_status()
 
@@ -541,23 +631,42 @@ class NapariReviewApp:
 
     def save_all(self) -> None:
         self._save_current_annotation()
+        self.resume_index = self.index
         save_manual_annotations(self.output_path, self.annotations, self.image_dir)
         self._update_status(extra="Saved.")
+
+    def _jump_to_index(self, index: int, extra: str = "", reset_view: bool = False) -> None:
+        if not (0 <= index < len(self.images)):
+            self._update_status(extra=f"Image {index + 1} is outside 1-{len(self.images)}.")
+            return
+        if self.current_image_path is not None:
+            self.save_all()
+        self.index = index
+        self._load_current_image(reset_view=reset_view)
+        if extra:
+            self._update_status(extra=extra)
+
+    def _jump_to_query(self) -> None:
+        index, error = _resolve_jump_index(self.images, self.jump_input.text())
+        if error is not None:
+            self._update_status(extra=error)
+            return
+        assert index is not None
+        self._jump_to_index(index, extra=f"Jumped to image {index + 1}.")
+
+    def jump_to_resume(self) -> None:
+        self._jump_to_index(self.resume_index, extra=f"Resumed at image {self.resume_index + 1}.")
 
     def prev_image(self) -> None:
         if self.index <= 0:
             return
-        self.save_all()
-        self.index -= 1
-        self._load_current_image(reset_view=False)
+        self._jump_to_index(self.index - 1)
 
     def next_image(self) -> None:
         if self.index >= len(self.images) - 1:
             self.save_all()
             return
-        self.save_all()
-        self.index += 1
-        self._load_current_image(reset_view=False)
+        self._jump_to_index(self.index + 1)
 
     def _update_status(self, extra: str = "") -> None:
         reviewed = 0
@@ -570,6 +679,7 @@ class NapariReviewApp:
         selected = len(self.shapes_layer.selected_data) if self.shapes_layer is not None else 0
         text = (
             f"Image {self.index + 1}/{len(self.images)}\n"
+            f"Resume target: {self.resume_index + 1}/{len(self.images)}\n"
             f"Reviewed tiles: {reviewed}/{len(self.images)}\n"
             f"Current annotations: {current_objects}\n"
             f"Selected shapes: {selected}\n"

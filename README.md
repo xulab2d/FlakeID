@@ -180,6 +180,15 @@ The napari reviewer also supports object-level metadata for downstream ranking:
 
 Set those in the dock and click `Apply Metadata To Selected` after selecting one or more flakes.
 
+Reviewer navigation tips:
+
+- reopening the same session resumes at the most recently saved image
+- type an image number or filename fragment in the jump box and press `Enter`
+- `[` and `]` move backward and forward
+- `Ctrl+L` focuses the jump box
+- `Ctrl+G` jumps to the typed image
+- `Ctrl+J` jumps back to the saved resume target
+
 Export manual review polygons or boxes to COCO:
 
 ```powershell
