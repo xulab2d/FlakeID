@@ -9,15 +9,13 @@ from PIL import Image, ImageTk
 from ..annotation.manual import (
     ManualImageAnnotation,
     ManualObjectAnnotation,
+    VALID_OBJECT_LABELS,
     VALID_TILE_LABELS,
     discover_images,
     load_manual_annotations,
     save_manual_annotations,
 )
 from ..utils import timestamp_utc
-
-
-OBJECT_LABELS = ("graphene", "hbn", "other_flake", "artifact")
 
 
 class ManualReviewApp:
@@ -42,7 +40,7 @@ class ManualReviewApp:
         self.drag_preview_id: int | None = None
 
         self.tile_label_var = tk.StringVar(value="unreviewed")
-        self.object_label_var = tk.StringVar(value=OBJECT_LABELS[0])
+        self.object_label_var = tk.StringVar(value=VALID_OBJECT_LABELS[0])
         self.status_var = tk.StringVar(value="")
         self.path_var = tk.StringVar(value="")
 
@@ -70,8 +68,8 @@ class ManualReviewApp:
         ttk.Button(toolbar, text="Zoom -", command=lambda: self._change_zoom(0.8)).pack(side=tk.LEFT, padx=12)
         ttk.Button(toolbar, text="Zoom +", command=lambda: self._change_zoom(1.25)).pack(side=tk.LEFT, padx=4)
         ttk.Button(toolbar, text="Fit", command=self._fit_to_view).pack(side=tk.LEFT, padx=4)
-        ttk.Button(toolbar, text="Delete Box", command=self.delete_selected_box).pack(side=tk.LEFT, padx=12)
-        ttk.Button(toolbar, text="Clear Boxes", command=self.clear_boxes).pack(side=tk.LEFT, padx=4)
+        ttk.Button(toolbar, text="Delete Shape", command=self.delete_selected_box).pack(side=tk.LEFT, padx=12)
+        ttk.Button(toolbar, text="Clear Shapes", command=self.clear_boxes).pack(side=tk.LEFT, padx=4)
         ttk.Button(toolbar, text="Save", command=self.save_all).pack(side=tk.LEFT, padx=12)
 
         self.path_label = ttk.Label(left, textvariable=self.path_var)
@@ -107,12 +105,12 @@ class ManualReviewApp:
         ttk.Separator(right, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=10)
 
         ttk.Label(right, text="New Box Label").pack(anchor="w")
-        label_menu = ttk.OptionMenu(right, self.object_label_var, OBJECT_LABELS[0], *OBJECT_LABELS)
+        label_menu = ttk.OptionMenu(right, self.object_label_var, VALID_OBJECT_LABELS[0], *VALID_OBJECT_LABELS)
         label_menu.pack(fill=tk.X, pady=4)
 
         ttk.Label(
             right,
-            text="Draw boxes with left-drag.\nClick an existing box to select it.\nUse Delete to remove the selected box.",
+            text="Draw boxes with left-drag.\nClick an existing shape to select it.\nUse Delete to remove the selected shape.",
             justify=tk.LEFT,
         ).pack(anchor="w", pady=10)
 
@@ -201,23 +199,38 @@ class ManualReviewApp:
         self.canvas.delete("all")
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.current_photo, tags=("image",))
         self.canvas.configure(scrollregion=(0, 0, width, height))
-        self._draw_boxes()
+        self._draw_shapes()
 
-    def _draw_boxes(self) -> None:
+    def _draw_shapes(self) -> None:
         if self.current_image_path is None:
             return
         annotation = self._annotation_for(self.current_image_path)
         for index, item in enumerate(annotation.objects):
-            x, y, w, h = item.bbox_xywh
-            sx1 = x * self.zoom
-            sy1 = y * self.zoom
-            sx2 = (x + w) * self.zoom
-            sy2 = (y + h) * self.zoom
             color = "#00ff88" if index != self.selected_box_index else "#ff0066"
-            self.canvas.create_rectangle(sx1, sy1, sx2, sy2, outline=color, width=2)
+            if item.vertices_xy:
+                scaled_points: list[float] = []
+                for x, y in item.display_vertices_xy:
+                    scaled_points.extend([x * self.zoom, y * self.zoom])
+                self.canvas.create_polygon(
+                    scaled_points,
+                    outline=color,
+                    width=2,
+                    fill="",
+                )
+                label_x = scaled_points[0]
+                label_y = scaled_points[1]
+            else:
+                x, y, w, h = item.bbox_xywh
+                sx1 = x * self.zoom
+                sy1 = y * self.zoom
+                sx2 = (x + w) * self.zoom
+                sy2 = (y + h) * self.zoom
+                self.canvas.create_rectangle(sx1, sy1, sx2, sy2, outline=color, width=2)
+                label_x = sx1
+                label_y = sy1
             self.canvas.create_text(
-                sx1 + 4,
-                max(12, sy1 + 10),
+                label_x + 4,
+                max(12, label_y + 10),
                 text=item.label,
                 fill=color,
                 anchor=tk.W,

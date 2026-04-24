@@ -6,6 +6,7 @@ from flake_ml.annotation.manual import (
     ManualImageAnnotation,
     ManualObjectAnnotation,
     export_manual_annotations_to_coco,
+    load_manual_annotations,
     resolve_review_paths,
     save_manual_annotations,
 )
@@ -26,8 +27,10 @@ class ManualAnnotationTests(unittest.TestCase):
 
         image_a = image_root / "tile_a.jpg"
         image_b = image_root / "tile_b.jpg"
+        image_c = image_root / "tile_c.jpg"
         image_a.write_bytes(b"a")
         image_b.write_bytes(b"b")
+        image_c.write_bytes(b"c")
 
         annotations = {
             str(image_a.resolve()): ManualImageAnnotation(
@@ -37,6 +40,17 @@ class ManualAnnotationTests(unittest.TestCase):
             ),
             str(image_b.resolve()): ManualImageAnnotation(
                 image_path=str(image_b.resolve()),
+                tile_label="hbn",
+                objects=[
+                    ManualObjectAnnotation(
+                        label="hbn",
+                        shape_type="polygon",
+                        vertices_xy=[(5, 5), (35, 5), (28, 22), (12, 28)],
+                    )
+                ],
+            ),
+            str(image_c.resolve()): ManualImageAnnotation(
+                image_path=str(image_c.resolve()),
                 tile_label="no_flake",
                 objects=[],
             ),
@@ -44,14 +58,26 @@ class ManualAnnotationTests(unittest.TestCase):
         save_manual_annotations(review_path, annotations, image_root=image_root)
         self.assertTrue(review_path.exists())
 
+        reloaded = load_manual_annotations(review_path)
+        polygon_object = reloaded[str(image_b.resolve())].objects[0]
+        self.assertEqual(polygon_object.shape_type, "polygon")
+        self.assertEqual(polygon_object.bbox_xywh, (5, 5, 30, 23))
+
         coco_path = workspace / "labels" / "manual_annotations.coco.json"
         payload = export_manual_annotations_to_coco(review_path, coco_path)
-        self.assertEqual(len(payload["images"]), 1)
-        self.assertEqual(len(payload["annotations"]), 1)
+        self.assertEqual(len(payload["images"]), 2)
+        self.assertEqual(len(payload["annotations"]), 2)
         self.assertEqual(payload["categories"][0]["name"], "graphene")
+        polygon_annotation = next(
+            row
+            for row in payload["annotations"]
+            if payload["categories"][row["category_id"] - 1]["name"] == "hbn"
+        )
+        self.assertEqual(len(polygon_annotation["segmentation"][0]), 8)
+        self.assertGreater(polygon_annotation["area"], 0.0)
 
         saved = json.loads(coco_path.read_text(encoding="utf-8"))
-        self.assertEqual(len(saved["annotations"]), 1)
+        self.assertEqual(len(saved["annotations"]), 2)
 
 
 if __name__ == "__main__":

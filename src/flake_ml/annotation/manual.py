@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
+from math import ceil, floor
 from pathlib import Path
+from typing import Iterable
 
 from ..utils import ensure_dir, timestamp_utc
 
@@ -17,25 +19,116 @@ VALID_TILE_LABELS = (
     "unsure",
 )
 
+VALID_OBJECT_LABELS = (
+    "graphene",
+    "hbn",
+    "other_flake",
+    "artifact",
+)
+
+
+def normalize_vertices(vertices_xy: Iterable[Iterable[float]]) -> list[tuple[float, float]]:
+    normalized: list[tuple[float, float]] = []
+    for vertex in vertices_xy:
+        x, y = vertex
+        normalized.append((float(x), float(y)))
+    return normalized
+
+
+def rectangle_vertices_from_bbox(bbox_xywh: tuple[int, int, int, int]) -> list[tuple[float, float]]:
+    x, y, width, height = bbox_xywh
+    return [
+        (float(x), float(y)),
+        (float(x + width), float(y)),
+        (float(x + width), float(y + height)),
+        (float(x), float(y + height)),
+    ]
+
+
+def bbox_from_vertices(vertices_xy: Iterable[Iterable[float]]) -> tuple[int, int, int, int]:
+    normalized = normalize_vertices(vertices_xy)
+    if not normalized:
+        return (0, 0, 0, 0)
+    xs = [vertex[0] for vertex in normalized]
+    ys = [vertex[1] for vertex in normalized]
+    min_x = floor(min(xs))
+    max_x = ceil(max(xs))
+    min_y = floor(min(ys))
+    max_y = ceil(max(ys))
+    return (int(min_x), int(min_y), int(max_x - min_x), int(max_y - min_y))
+
+
+def polygon_area(vertices_xy: Iterable[Iterable[float]]) -> float:
+    normalized = normalize_vertices(vertices_xy)
+    if len(normalized) < 3:
+        return 0.0
+    area = 0.0
+    for index, (x0, y0) in enumerate(normalized):
+        x1, y1 = normalized[(index + 1) % len(normalized)]
+        area += (x0 * y1) - (x1 * y0)
+    return abs(area) * 0.5
+
 
 @dataclass(slots=True)
 class ManualObjectAnnotation:
     label: str
-    bbox_xywh: tuple[int, int, int, int]
+    bbox_xywh: tuple[int, int, int, int] = (0, 0, 0, 0)
+    shape_type: str = "bbox"
+    vertices_xy: list[tuple[float, float]] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self.label = str(self.label)
+        self.vertices_xy = normalize_vertices(self.vertices_xy)
+        inferred_shape_type = "polygon" if self.vertices_xy else "bbox"
+        self.shape_type = str(self.shape_type or inferred_shape_type)
+        if self.vertices_xy:
+            self.bbox_xywh = bbox_from_vertices(self.vertices_xy)
+        else:
+            x, y, width, height = self.bbox_xywh
+            self.bbox_xywh = (int(x), int(y), int(width), int(height))
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "label": self.label,
             "bbox_xywh": list(self.bbox_xywh),
+            "shape_type": self.shape_type,
         }
+        if self.vertices_xy:
+            payload["vertices_xy"] = [[x, y] for x, y in self.vertices_xy]
+        return payload
 
     @classmethod
     def from_dict(cls, payload: dict) -> "ManualObjectAnnotation":
         bbox = payload.get("bbox_xywh", [0, 0, 0, 0])
+        raw_vertices = payload.get("vertices_xy", payload.get("polygon_xy", []))
         return cls(
             label=str(payload.get("label", "flake")),
             bbox_xywh=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
+            shape_type=str(payload.get("shape_type", "polygon" if raw_vertices else "bbox")),
+            vertices_xy=raw_vertices,
         )
+
+    @property
+    def display_vertices_xy(self) -> list[tuple[float, float]]:
+        if self.vertices_xy:
+            return self.vertices_xy
+        return rectangle_vertices_from_bbox(self.bbox_xywh)
+
+    @property
+    def segmentation_xy(self) -> list[float]:
+        flattened: list[float] = []
+        for x, y in self.display_vertices_xy:
+            flattened.extend([float(x), float(y)])
+        return flattened
+
+    @property
+    def area_px(self) -> float:
+        if self.vertices_xy:
+            area = polygon_area(self.vertices_xy)
+            if area > 0:
+                return area
+        _, _, width, height = self.bbox_xywh
+        return float(max(0, width) * max(0, height))
 
 
 @dataclass(slots=True)
@@ -109,7 +202,7 @@ def save_manual_annotations(
     target = Path(path)
     ensure_dir(target.parent)
     payload = {
-        "version": 1,
+        "version": 2,
         "image_root": str(Path(image_root).resolve()),
         "updated_utc": timestamp_utc(),
         "annotations": {
@@ -146,9 +239,9 @@ def export_manual_annotations_to_coco(
                     "image_id": image_id,
                     "category_id": categories[item.label],
                     "bbox": [x, y, w, h],
-                    "area": w * h,
+                    "area": item.area_px,
                     "iscrowd": 0,
-                    "segmentation": [[x, y, x + w, y, x + w, y + h, x, y + h]],
+                    "segmentation": [item.segmentation_xy],
                 }
             )
             annotation_id += 1
