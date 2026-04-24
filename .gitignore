@@ -8,3 +8,4 @@ venv/
 outputs/
 photos/
 .repo_inspect/
+tools/canon_sdk_capture/bin/

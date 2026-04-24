@@ -2,6 +2,9 @@ import time
 import unittest
 from pathlib import Path
 
+from flake_ml.acquisition import CanonSdkCamera
+from flake_ml.config import load_lab_config
+from flake_ml.scanning.runtime import build_camera_from_config
 from flake_ml.acquisition.watch import WatchedFolderCamera
 
 
@@ -32,6 +35,13 @@ class WatchedFolderCameraTests(unittest.TestCase):
         self.assertEqual(captured, output)
         self.assertTrue(output.exists())
         self.assertEqual(output.read_bytes(), b"test-image")
+
+    def test_build_camera_from_config_supports_canon_sdk(self) -> None:
+        config = load_lab_config(Path.cwd() / "configs" / "lab.example.toml")
+        config.camera.driver = "canon_sdk"
+        camera = build_camera_from_config(config, repo_root=Path.cwd())
+        self.assertIsInstance(camera, CanonSdkCamera)
+        self.assertTrue(str(camera.helper_script).endswith("scripts\\canon_sdk_capture.ps1"))
 
 
 if __name__ == "__main__":

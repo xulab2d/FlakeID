@@ -135,15 +135,31 @@ Export reviewed candidates to COCO:
 
 ## Photo Storage
 
-- `photos/incoming`: fixed hot folder for EOS Utility download handoff
+- `photos/incoming`: fallback hot folder for EOS Utility download handoff
 - `photos/scans/<timestamp>_<sample_id>`: one folder per scan with tiles, logs, QC, and catalog files
 
 The `photos/` tree is gitignored.
 
+## Direct Canon Capture
+
+The preferred camera path on this workstation is now the local Canon SDK helper:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\canon_sdk_capture.ps1 -Probe
+```
+
+For a direct still-image test:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\canon_sdk_capture.ps1 `
+  -Output outputs\camera_test.jpg
+```
+
+Close `EOS Utility` or any Canon live-view window before using the direct SDK path, because the camera session is exclusive.
+
 ## What This Does Not Yet Solve
 
 - autofocus for Z
-- direct Canon tether capture without a configured external capture command
 - robust multilayer thickness regression
 - remote model training orchestration
 - scan-time stitch mosaics

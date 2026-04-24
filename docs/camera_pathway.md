@@ -19,35 +19,36 @@ Bottom line:
 
 ## Recommended Capture Stack
 
-### Stage A: Immediate Bring-Up
+### Stage A: Direct SDK Capture
 
-Use `EOS Utility` as the capture engine and let FlakeID watch the download folder.
+Use the repo helper around Canon `EDSDK.dll`:
 
-Why:
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\canon_sdk_capture.ps1 -Probe
+```
 
-- Canon already supports the camera on this machine
-- it avoids brittle reverse engineering on day one
-- it lets you start collecting blank fields, anchors, and pilot tiles immediately
+And for a real shutter test:
 
-Recommended flow:
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\canon_sdk_capture.ps1 `
+  -Output outputs\camera_test.jpg
+```
 
-1. In EOS Utility, open remote shooting.
-2. Set the save destination once to `photos/incoming`.
-3. Disable any linked auto-open behavior you do not want during scanning.
-4. Keep FlakeID responsible for copying images into per-scan folders, renaming, cataloging, and later analysis.
+This helper:
 
-### Stage B: Robust Automation
+- opens one Canon session directly through `EDSDK.dll`
+- switches the save destination to the host PC
+- triggers the shutter
+- downloads the captured image to the requested path
 
-Build a small long-lived Canon SDK helper around the installed `EDSDK.dll`.
+Important:
 
-That helper should do only a few things:
+- close `EOS Utility` and any live-view window before running it
+- Canon camera sessions are exclusive, so the SDK helper cannot open the body while EOS Utility still owns it
 
-- open one camera session and keep it open
-- trigger a capture
-- save the downloaded image to a requested path
-- report camera identity and errors cleanly
+### Stage B: Watched-Folder Fallback
 
-That is the cleanest end state for this Windows workstation because Canon's own SDK is already present and the camera is known to be supported.
+If direct SDK capture is temporarily unavailable, FlakeID can still fall back to `EOS Utility` plus a watched hot folder at `photos/incoming`.
 
 ### Stage C: Optional Live-View Integration
 

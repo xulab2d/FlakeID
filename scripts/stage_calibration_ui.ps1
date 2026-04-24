@@ -523,6 +523,9 @@ function Update-ScanLabel {
     elseif ($safeParts.Count -gt 0) {
         $scanNotes.Text = "Safe scan window with current margin: " + ($safeParts -join ", ")
     }
+    elseif ($cameraDriver -eq "canon_sdk") {
+        $scanNotes.Text = "Camera driver: canon_sdk. Direct tether capture is enabled. Close EOS Utility/live view before starting a scan so the SDK can open the camera session."
+    }
     elseif ($cameraDriver -eq "watched_folder") {
         $scanNotes.Text = "Camera driver: watched_folder. Set EOS Utility once to save into $incomingDir. With your current belt slack, start around 20-30% overlap if you want safer coverage."
     }

@@ -6,7 +6,7 @@ from pathlib import Path
 import time
 from typing import Callable
 
-from ..acquisition import Camera, DirectoryReplayCamera, ExternalCommandCamera, WatchedFolderCamera
+from ..acquisition import Camera, CanonSdkCamera, DirectoryReplayCamera, ExternalCommandCamera, WatchedFolderCamera
 from ..catalog import CatalogStore
 from ..config import LabConfig
 from ..models import ScanTile, StagePosition
@@ -147,11 +147,14 @@ def build_camera_from_config(config: LabConfig, repo_root: str | Path) -> Camera
     driver = config.camera.driver.lower().strip()
     incoming_dir = config.camera.incoming_dir or "photos/incoming"
     incoming_path = resolve_path(incoming_dir, base_dir=repo_root)
+    helper_script = Path(repo_root) / "scripts" / "canon_sdk_capture.ps1"
 
     if driver == "external_command":
         if not config.camera.capture_command.strip():
             raise ValueError("camera.capture_command is empty. Configure a real external capture command first.")
         return ExternalCommandCamera(config.camera.capture_command)
+    if driver == "canon_sdk":
+        return CanonSdkCamera(helper_script=helper_script, timeout_s=config.camera.capture_timeout_s)
     if driver == "watched_folder":
         ensure_dir(incoming_path)
         return WatchedFolderCamera(

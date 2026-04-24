@@ -31,6 +31,7 @@ class CameraConfig:
     driver: str = "external_command"
     capture_command: str = ""
     output_extension: str = ".jpg"
+    capture_timeout_s: float = 45.0
     incoming_dir: str = ""
     watch_timeout_s: float = 30.0
     watch_stability_ms: int = 500
