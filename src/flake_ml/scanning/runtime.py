@@ -69,6 +69,7 @@ def build_scan_tiles_from_roi(
     min_y_um: float,
     max_y_um: float,
     config: LabConfig,
+    enforce_bounds: bool = True,
 ) -> list[ScanTile]:
     left_x_um = float(min(min_x_um, max_x_um))
     right_x_um = float(max(min_x_um, max_x_um))
@@ -84,7 +85,8 @@ def build_scan_tiles_from_roi(
         origin_x_um=left_x_um,
         origin_y_um=top_y_um,
     )
-    _validate_tiles_within_motion_bounds(tiles, config)
+    if enforce_bounds:
+        _validate_tiles_within_motion_bounds(tiles, config)
     return tiles
 
 
@@ -178,6 +180,7 @@ def run_capture_scan(
     roi_min_y_um: float,
     roi_max_y_um: float,
     output_root: str | Path,
+    allow_out_of_bounds: bool = False,
     motion: MotionController | None = None,
     camera: Camera | None = None,
     log: LogCallback | None = None,
@@ -203,7 +206,14 @@ def run_capture_scan(
     log_path = logs_dir / "scan.log.jsonl"
     plan_path = qc_dir / "scan_plan.json"
 
-    tiles = build_scan_tiles_from_roi(roi_min_x_um, roi_max_x_um, roi_min_y_um, roi_max_y_um, config)
+    tiles = build_scan_tiles_from_roi(
+        roi_min_x_um,
+        roi_max_x_um,
+        roi_min_y_um,
+        roi_max_y_um,
+        config,
+        enforce_bounds=not allow_out_of_bounds,
+    )
     _write_json(
         plan_path,
         {
@@ -212,6 +222,7 @@ def run_capture_scan(
             "roi_max_x_um": max(roi_min_x_um, roi_max_x_um),
             "roi_min_y_um": min(roi_min_y_um, roi_max_y_um),
             "roi_max_y_um": max(roi_min_y_um, roi_max_y_um),
+            "allow_out_of_bounds": allow_out_of_bounds,
             "tiles": [tile.to_dict() for tile in tiles],
         },
     )
@@ -238,6 +249,8 @@ def run_capture_scan(
         log(f"Session: {session_dir}")
         log(f"Planned tiles: {len(tiles)}")
         log(f"Catalog: {catalog_path}")
+        if allow_out_of_bounds:
+            log("Safe motion bounds are being bypassed for this scan. Proceed carefully.")
         if config.camera.driver.lower().strip() == "watched_folder":
             hot_folder = resolve_path(config.camera.incoming_dir or "photos/incoming", base_dir=repo_root)
             log(f"Watched incoming folder: {hot_folder}")

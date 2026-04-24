@@ -250,6 +250,7 @@ def command_run_scan(args: argparse.Namespace) -> None:
         raise ValueError(f"Scan ROI is incomplete. Provide {', '.join(missing)} or save the scan ROI in the config.")
 
     output_root = args.output_root or config.scan.photo_root_dir
+    allow_out_of_bounds = bool(args.allow_out_of_bounds or config.scan.allow_out_of_bounds)
     summary = run_capture_scan(
         config_path=args.config,
         config=config,
@@ -264,6 +265,7 @@ def command_run_scan(args: argparse.Namespace) -> None:
         roi_min_y_um=float(roi_min_y_um),
         roi_max_y_um=float(roi_max_y_um),
         output_root=output_root,
+        allow_out_of_bounds=allow_out_of_bounds,
         log=lambda message: print(message, flush=True),
     )
     print(json.dumps(summary, indent=2))
@@ -362,6 +364,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_scan.add_argument("--roi-max-x-um", type=float)
     run_scan.add_argument("--roi-min-y-um", type=float)
     run_scan.add_argument("--roi-max-y-um", type=float)
+    run_scan.add_argument("--allow-out-of-bounds", action="store_true")
     run_scan.set_defaults(func=command_run_scan)
 
     stage_ui = subparsers.add_parser("stage-ui", help="Open the interactive stage calibration UI.")

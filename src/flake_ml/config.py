@@ -45,6 +45,7 @@ class ScanConfig:
     origin_x_um: float = 0.0
     origin_y_um: float = 0.0
     photo_root_dir: str = "photos/scans"
+    allow_out_of_bounds: bool = False
     roi_min_x_um: float | None = None
     roi_max_x_um: float | None = None
     roi_min_y_um: float | None = None

@@ -229,6 +229,7 @@ $scanFovWidthUm = [double](Get-ConfigValue -Path $Config -Section "scan" -Key "f
 $scanFovHeightUm = [double](Get-ConfigValue -Path $Config -Section "scan" -Key "fov_height_um" -Default 195.0)
 $scanOverlapFraction = [double](Get-ConfigValue -Path $Config -Section "scan" -Key "overlap_fraction" -Default 0.12)
 $scanPhotoRootDir = [string](Get-ConfigValue -Path $Config -Section "scan" -Key "photo_root_dir" -Default "photos/scans")
+$scanAllowOutOfBounds = [bool](Get-ConfigValue -Path $Config -Section "scan" -Key "allow_out_of_bounds" -Default $false)
 $scanRoiMinX = Get-ConfigValue -Path $Config -Section "scan" -Key "roi_min_x_um" -Default $null
 $scanRoiMaxX = Get-ConfigValue -Path $Config -Section "scan" -Key "roi_max_x_um" -Default $null
 $scanRoiMinY = Get-ConfigValue -Path $Config -Section "scan" -Key "roi_min_y_um" -Default $null
@@ -356,6 +357,12 @@ New-Label "FOV H (um)" 485 655 75 24 | Out-Null
 $fovHeightBox = New-TextBox ([string]$scanFovHeightUm) 565 653 85 24
 New-Label "Overlap" 670 655 55 24 | Out-Null
 $overlapBox = New-TextBox ([string]$scanOverlapFraction) 730 653 70 24
+$allowOutOfBoundsCheck = New-Object System.Windows.Forms.CheckBox
+$allowOutOfBoundsCheck.Text = "Allow out-of-bounds scan"
+$allowOutOfBoundsCheck.Checked = $scanAllowOutOfBounds
+$allowOutOfBoundsCheck.Location = New-Object System.Drawing.Point(815, 653)
+$allowOutOfBoundsCheck.Size = New-Object System.Drawing.Size(190, 24)
+$form.Controls.Add($allowOutOfBoundsCheck)
 
 New-Label "Photo root" 20 690 70 24 | Out-Null
 $photoRootBox = New-TextBox $scanPhotoRootDir 105 688 800 24
@@ -507,7 +514,10 @@ function Update-ScanLabel {
         $safeParts += ("Y={0:N0}..{1:N0} um" -f ([double]$script:MinYUm + $marginUm), ([double]$script:MaxYUm - $marginUm))
     }
 
-    if ($violations.Count -gt 0) {
+    if ($violations.Count -gt 0 -and $allowOutOfBoundsCheck.Checked) {
+        $scanNotes.Text = "Safe-window bypass enabled. ROI would normally be blocked: " + (($violations | Select-Object -First 2) -join "; ")
+    }
+    elseif ($violations.Count -gt 0) {
         $scanNotes.Text = "ROI is outside the current safe window. " + (($violations | Select-Object -First 2) -join "; ")
     }
     elseif ($safeParts.Count -gt 0) {
@@ -647,7 +657,7 @@ function Save-ScanSettings {
         return $false
     }
     $violations = Get-ScanRoiViolations
-    if ($violations.Count -gt 0) {
+    if ($violations.Count -gt 0 -and -not $allowOutOfBoundsCheck.Checked) {
         [System.Windows.Forms.MessageBox]::Show("The scan ROI is outside the current safe motion bounds:`r`n`r`n" + ($violations -join "`r`n") + "`r`n`r`nRemark the scan edges farther from the stage limits or reduce the safety margin if you intentionally want to scan closer.")
         return $false
     }
@@ -657,6 +667,7 @@ function Save-ScanSettings {
             fov_height_um = [double]$fovHeightBox.Text
             overlap_fraction = [double]$overlapBox.Text
             photo_root_dir = [string]$photoRootBox.Text
+            allow_out_of_bounds = [bool]$allowOutOfBoundsCheck.Checked
             roi_min_x_um = [double]$script:ScanMinXUm
             roi_max_x_um = [double]$script:ScanMaxXUm
             roi_min_y_um = [double]$script:ScanMinYUm
@@ -734,6 +745,9 @@ function Start-Scan {
     if (-not [string]::IsNullOrWhiteSpace($operator)) {
         $argList += @("-Operator", (Quote-ProcessArgument $operator))
     }
+    if ($allowOutOfBoundsCheck.Checked) {
+        $argList += @("-AllowOutOfBounds")
+    }
 
     $argumentString = $argList -join " "
     $process = Start-Process -FilePath "powershell.exe" -ArgumentList $argumentString -WorkingDirectory $repoRoot -PassThru
@@ -788,6 +802,7 @@ $startScanButton.Add_Click({ Start-Scan })
 $fovWidthBox.Add_TextChanged({ Update-ScanLabel })
 $fovHeightBox.Add_TextChanged({ Update-ScanLabel })
 $overlapBox.Add_TextChanged({ Update-ScanLabel })
+$allowOutOfBoundsCheck.Add_CheckedChanged({ Update-ScanLabel })
 
 Update-BoundsLabel
 Update-ScanLabel

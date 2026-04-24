@@ -29,6 +29,10 @@ param(
 
     [Parameter(Mandatory = $true)]
     [double]$RoiMaxYUm
+
+    ,
+
+    [switch]$AllowOutOfBounds
 )
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -60,6 +64,9 @@ $runScanArgs = @(
 
 if (-not [string]::IsNullOrWhiteSpace($Operator)) {
     $runScanArgs += @("--operator", $Operator)
+}
+if ($AllowOutOfBounds) {
+    $runScanArgs += @("--allow-out-of-bounds")
 }
 
 & $pythonExe @runScanArgs

@@ -54,6 +54,23 @@ class ScanRuntimeTests(unittest.TestCase):
         tiles = build_scan_tiles_from_roi(700.0, 100.0, 800.0, 200.0, config)
         self.assertEqual((tiles[0].position.x_um, tiles[0].position.y_um), (100.0, 200.0))
 
+    def test_build_scan_tiles_from_roi_can_bypass_bounds(self) -> None:
+        config = load_lab_config(Path.cwd() / "configs" / "lab.example.toml")
+        config.scan.fov_width_um = 200.0
+        config.scan.fov_height_um = 200.0
+        config.scan.overlap_fraction = 0.0
+        config.motion.min_x_um = 0.0
+        config.motion.min_y_um = 0.0
+        config.motion.max_x_um = 1000.0
+        config.motion.max_y_um = 1000.0
+        config.motion.safety_margin_um = 200.0
+
+        with self.assertRaises(ValueError):
+            build_scan_tiles_from_roi(100.0, 900.0, 100.0, 900.0, config)
+
+        tiles = build_scan_tiles_from_roi(100.0, 900.0, 100.0, 900.0, config, enforce_bounds=False)
+        self.assertTrue(len(tiles) > 0)
+
     def test_run_capture_scan_creates_session_and_images(self) -> None:
         config_path = Path.cwd() / "configs" / "lab.example.toml"
         config = load_lab_config(config_path)
