@@ -310,6 +310,11 @@ def command_review_images(args: argparse.Namespace) -> None:
         image_dir=args.image_dir,
         output_path=args.output,
     )
+    if args.tool == "napari":
+        from .ui.napari_reviewer import launch_napari_review
+
+        launch_napari_review(image_dir=image_dir, output_path=output_path)
+        return
     launch_manual_review(image_dir=image_dir, output_path=output_path)
 
 
@@ -426,11 +431,12 @@ def build_parser() -> argparse.ArgumentParser:
     review_source.add_argument("--session-dir")
     review_source.add_argument("--image-dir")
     review_images.add_argument("--output")
+    review_images.add_argument("--tool", choices=["tk", "napari"], default="tk")
     review_images.set_defaults(func=command_review_images)
 
     export_manual = subparsers.add_parser(
         "export-manual-coco",
-        help="Export manually reviewed boxes to COCO JSON.",
+        help="Export manually reviewed polygons or boxes to COCO JSON.",
     )
     export_manual.add_argument("--review-path", required=True)
     export_manual.add_argument("--output", required=True)

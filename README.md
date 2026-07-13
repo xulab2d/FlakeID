@@ -151,7 +151,45 @@ Open the manual review UI for a scan session:
   --session-dir photos\scans\20260424T024315Z_flake_grid_001
 ```
 
-Export manual review boxes to COCO:
+Launch the polygon-aware napari reviewer for precise flake boundaries:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\launch_napari_review.ps1 `
+  -SessionDir photos\scans\20260424T024315Z_flake_grid_001
+```
+
+Use napari polygon mode for irregular flake outlines and rectangle mode only for quick coarse labels. The napari reviewer saves polygon vertices directly into the same `manual_annotations.json` file, so later COCO exports keep the real outline instead of collapsing everything to crude boxes.
+
+Recommended tile labels:
+
+- `flake_present`: the field contains one or more flakes worth annotating
+- `empty_substrate`: true negative on the correct substrate with no flake present
+- `off_target`: the stage is between sites or otherwise not over a useful survey location
+- `bad_focus`: the field is not trustworthy because focus failed
+- `artifact`: dust, glare, tape residue, edge effects, or other nuisance structure
+- `unsure`: reviewer cannot confidently decide yet
+
+Object labels stay flake-specific: `graphene`, `hbn`, `other_flake`, and `artifact`.
+
+The napari reviewer also supports object-level metadata for downstream ranking:
+
+- `thickness_bin`: `unknown`, `mono`, `bi`, `few_layer`, `thick`
+- `size_class`: `unknown`, `tiny`, `small`, `usable`, `large`
+- `shape_class`: `unknown`, `bottom_gate_candidate`, `channel_candidate`, `irregular`, `fragmented`
+- `priority`: `unknown`, `ignore`, `review`, `device_candidate`
+
+Set those in the dock and click `Apply Metadata To Selected` after selecting one or more flakes.
+
+Reviewer navigation tips:
+
+- reopening the same session resumes at the most recently saved image
+- type an image number or filename fragment in the jump box and press `Enter`
+- `[` and `]` move backward and forward
+- `Ctrl+L` focuses the jump box
+- `Ctrl+G` jumps to the typed image
+- `Ctrl+J` jumps back to the saved resume target
+
+Export manual review polygons or boxes to COCO:
 
 ```powershell
 & 'C:\Users\xulab\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m flake_ml.cli export-manual-coco `
@@ -163,7 +201,7 @@ Export manual review boxes to COCO:
 
 - `photos/incoming`: fallback hot folder for EOS Utility download handoff
 - `photos/scans/<timestamp>_<sample_id>`: one folder per scan with tiles, logs, QC, and catalog files
-- `photos/scans/<timestamp>_<sample_id>/labels/manual_annotations.json`: manual flake review output from the built-in reviewer UI
+- `photos/scans/<timestamp>_<sample_id>/labels/manual_annotations.json`: manual flake review output from the Tk reviewer or the napari polygon reviewer
 
 The `photos/` tree is gitignored.
 
