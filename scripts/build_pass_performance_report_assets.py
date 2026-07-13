@@ -56,10 +56,14 @@ FONT = {
     "title": font(34, True),
     "subtitle": font(18),
     "axis": font(15),
+    "axis_big": font(18, True),
     "small": font(13),
     "tiny": font(11),
     "label": font(17, True),
+    "label_big": font(20, True),
     "value": font(15, True),
+    "value_big": font(17, True),
+    "legend": font(18, True),
 }
 
 
@@ -129,12 +133,21 @@ def draw_legend(
     x: int,
     y: int,
     gap: int = 22,
+    fnt: ImageFont.ImageFont | None = None,
+    swatch: int = 18,
 ) -> None:
+    use_default_style = fnt is None and swatch == 18
+    fnt = fnt or FONT["axis"]
     cx = x
     for label, color in items:
-        draw.rectangle((cx, y + 4, cx + 18, y + 18), fill=color, outline=color)
-        draw.text((cx + 26, y), label, font=FONT["axis"], fill=INK)
-        cx += text_size(draw, label, FONT["axis"])[0] + gap + 44
+        if use_default_style:
+            draw.rectangle((cx, y + 4, cx + 18, y + 18), fill=color, outline=color)
+            draw.text((cx + 26, y), label, font=fnt, fill=INK)
+            cx += text_size(draw, label, fnt)[0] + gap + 44
+        else:
+            draw.rectangle((cx, y + 2, cx + swatch, y + 2 + swatch), fill=color, outline=color)
+            draw.text((cx + swatch + 10, y), label, font=fnt, fill=INK)
+            cx += text_size(draw, label, fnt)[0] + gap + swatch + 34
 
 
 def save_canvas(img: Image.Image, name: str) -> None:
@@ -145,56 +158,53 @@ def save_canvas(img: Image.Image, name: str) -> None:
 
 def grouped_metric_chart() -> None:
     rows = [
-        ("Graphene\nfirst ML\nflake", [0.965517, 0.952941, 0.952941, 0.952941]),
-        ("Graphene\nfirst ML\nusable", [0.877778, 0.945455, 0.866667, 0.904348]),
-        ("Graphene\nsecond\npass", [0.912281, 0.604167, 0.725000, 0.659091]),
-        ("HBN\nlogistic\nbaseline", [0.964744, 0.888889, 0.640000, 0.744186]),
-        ("HBN first\npass torch", [0.993590, 1.000000, 0.920000, 0.958333]),
-        ("HBN second\npass region", [0.919118, 0.900000, 0.473684, 0.620690]),
+        ("Graphene\nfirst pass", [0.965517, 0.952941, 0.952941, 0.952941]),
+        ("Graphene\nsecond pass", [0.912281, 0.604167, 0.725000, 0.659091]),
+        ("hBN\nfirst pass", [0.993590, 1.000000, 0.920000, 0.958333]),
+        ("hBN\nsecond pass", [0.919118, 0.900000, 0.473684, 0.620690]),
     ]
     metrics = ["Accuracy", "Precision", "Recall", "F1"]
 
     width, height = 1680, 1020
     img = Image.new("RGB", (width, height), BG)
     draw = ImageDraw.Draw(img)
-    draw.text((56, 34), "Held-out validation metrics by pass", font=FONT["title"], fill=INK)
+    draw.text((56, 34), "Representative held-out validation metrics", font=FONT["title"], fill=INK)
     draw.text(
         (58, 82),
-        "Bars show validation metrics from saved model summaries; deterministic proposal stages are covered by funnel/yield plots.",
+        "First pass uses graphene flake-present logistic and hBN torch; second pass uses graphene good/bad and hBN region-domain models.",
         font=FONT["subtitle"],
         fill=MUTED,
     )
 
-    left, top, right, bottom = 110, 150, 1620, 780
+    left, top, right, bottom = 120, 150, 1605, 760
     draw.line((left, bottom, right, bottom), fill=INK, width=2)
     draw.line((left, top, left, bottom), fill=INK, width=2)
     for i in range(6):
         value = i / 5
         y = bottom - int(value * (bottom - top))
         draw.line((left, y, right, y), fill=GRID, width=1)
-        draw_right(draw, (left - 12, y - 10), f"{int(value * 100)}%", FONT["small"], MUTED)
+        draw_right(draw, (left - 14, y - 12), f"{int(value * 100)}%", FONT["axis"], MUTED)
 
     group_w = (right - left) / len(rows)
-    bar_w = min(40, group_w / 7)
+    bar_w = min(64, group_w / 6)
     for gi, (label, values) in enumerate(rows):
         base_x = left + group_w * gi
         center_x = base_x + group_w / 2
-        start_x = center_x - (len(metrics) * bar_w + (len(metrics) - 1) * 8) / 2
+        start_x = center_x - (len(metrics) * bar_w + (len(metrics) - 1) * 14) / 2
         for mi, value in enumerate(values):
-            x0 = int(start_x + mi * (bar_w + 8))
+            x0 = int(start_x + mi * (bar_w + 14))
             x1 = int(x0 + bar_w)
             y0 = bottom - int(value * (bottom - top))
             draw.rectangle((x0, y0, x1, bottom), fill=COLORS[mi])
-            if value >= 0.93 or (mi in (2, 3) and value <= 0.66):
-                draw_centered(draw, ((x0 + x1) / 2, y0 - 14), f"{value:.2f}", FONT["tiny"], INK)
+            draw_centered(draw, ((x0 + x1) / 2, y0 - 18), f"{value:.2f}", FONT["value_big"], INK)
         for li, line in enumerate(label.split("\n")):
-            draw_centered(draw, (center_x, bottom + 28 + li * 20), line, FONT["small"], INK)
+            draw_centered(draw, (center_x, bottom + 34 + li * 28), line, FONT["label_big"], INK)
 
-    draw_legend(draw, [(m, COLORS[i]) for i, m in enumerate(metrics)], left, height - 106)
+    draw_legend(draw, [(m, COLORS[i]) for i, m in enumerate(metrics)], left, height - 112, gap=34, fnt=FONT["legend"], swatch=24)
     draw.text(
         (left, height - 52),
-        "HBN region-domain second pass trades recall for high precision at threshold 0.95; HBN first-pass torch sharply improves recall over the logistic baseline.",
-        font=FONT["small"],
+        "hBN second pass trades recall for high precision at threshold 0.95; all values are shown above bars.",
+        font=FONT["axis"],
         fill=MUTED,
     )
     save_canvas(img, "validation_metrics_by_pass.png")
