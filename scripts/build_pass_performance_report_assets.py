@@ -18,12 +18,17 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIR = ROOT / "docs" / "assets" / "pass_performance_2026_07_13"
 
-BG = "#f7f5ef"
+BG = "#ffffff"
 PANEL = "#ffffff"
-INK = "#20242a"
-MUTED = "#5d6670"
-GRID = "#d7dce1"
-COLORS = ["#176f8f", "#2a9d8f", "#d9822b", "#8d5a97", "#c44536", "#5c6f91"]
+INK = "#2c2a29"
+MUTED = "#5f6062"
+GRID = "#e3e3e3"
+UW_PURPLE = "#4b2e83"
+UW_GOLD = "#b7a57a"
+UW_METALLIC_GOLD = "#85754d"
+UW_LAVENDER = "#8f7bb8"
+UW_GRAY = "#6c6d6f"
+COLORS = [UW_PURPLE, UW_GOLD, UW_METALLIC_GOLD, UW_GRAY, UW_LAVENDER, "#c8c9c7"]
 
 
 def load_json(rel_path: str) -> Any:
@@ -37,6 +42,7 @@ def ensure_assets() -> None:
 
 def font(size: int, bold: bool = False) -> ImageFont.ImageFont:
     candidates = [
+        ASSET_DIR / "fonts" / ("OpenSans-Bold.ttf" if bold else "OpenSans-Regular.ttf"),
         Path("C:/Windows/Fonts/segoeuib.ttf" if bold else "C:/Windows/Fonts/segoeui.ttf"),
         Path("C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf"),
     ]
@@ -114,7 +120,7 @@ def pct(v: float | None) -> str:
 
 
 def rounded_rect(draw: ImageDraw.ImageDraw, box: tuple[int, int, int, int], fill: str, outline: str | None = None) -> None:
-    draw.rounded_rectangle(box, radius=8, fill=fill, outline=outline)
+    draw.rectangle(box, fill=fill, outline=outline)
 
 
 def draw_legend(
@@ -178,7 +184,7 @@ def grouped_metric_chart() -> None:
             x0 = int(start_x + mi * (bar_w + 8))
             x1 = int(x0 + bar_w)
             y0 = bottom - int(value * (bottom - top))
-            draw.rounded_rectangle((x0, y0, x1, bottom), radius=5, fill=COLORS[mi])
+            draw.rectangle((x0, y0, x1, bottom), fill=COLORS[mi])
             if value >= 0.93 or (mi in (2, 3) and value <= 0.66):
                 draw_centered(draw, ((x0 + x1) / 2, y0 - 14), f"{value:.2f}", FONT["tiny"], INK)
         for li, line in enumerate(label.split("\n")):
@@ -232,7 +238,7 @@ def ranking_metric_chart() -> None:
             x0 = int(start_x + mi * (bar_w + 10))
             x1 = int(x0 + bar_w)
             y0 = bottom - int(value * (bottom - top))
-            draw.rounded_rectangle((x0, y0, x1, bottom), radius=5, fill=COLORS[mi])
+            draw.rectangle((x0, y0, x1, bottom), fill=COLORS[mi])
             draw_centered(draw, ((x0 + x1) / 2, y0 - 14), f"{value:.2f}", FONT["tiny"], INK)
         for li, line in enumerate(label.split("\n")):
             draw_centered(draw, (center_x, bottom + 28 + li * 20), line, FONT["small"], INK)
@@ -273,7 +279,7 @@ def funnel_chart() -> None:
             yy = y + 50 + si * 42
             draw.text((left - 18 - text_size(draw, stage, FONT["small"])[0], yy + 2), stage, font=FONT["small"], fill=MUTED)
             bar_len = 4 if count == 0 else int((math.log10(count + 1) / log_max) * (right - left))
-            draw.rounded_rectangle((left, yy, left + bar_len, yy + 24), radius=6, fill=COLORS[si])
+            draw.rectangle((left, yy, left + bar_len, yy + 24), fill=COLORS[si])
             draw.text((left + bar_len + 12, yy + 1), f"{count:,}", font=FONT["value"], fill=INK)
         draw.line((56, y + row_h - 18, right, y + row_h - 18), fill=GRID, width=1)
     draw_legend(draw, [("detector", COLORS[0]), ("first ML", COLORS[1]), ("second pass", COLORS[2])], left, height - 92)
@@ -327,7 +333,7 @@ def autofocus_winners_chart() -> None:
             x0 = int(start_x + bi * 70)
             x1 = x0 + bar_w
             y0 = bottom - int((value / 14) * (bottom - top))
-            draw.rounded_rectangle((x0, y0, x1, bottom), radius=6, fill=color)
+            draw.rectangle((x0, y0, x1, bottom), fill=color)
             draw_centered(draw, ((x0 + x1) / 2, y0 - 15), str(value), FONT["small"], INK)
         lines = wrap_text(draw, label, FONT["small"], int(group_w) - 20)
         for li, line in enumerate(lines):
@@ -386,7 +392,7 @@ def autofocus_curve_chart() -> None:
     for row in rows:
         x = x_of(row["linear_index"])
         if row["phase"] == "fine":
-            draw.line((x, top, x, bottom), fill="#eef1f3", width=1)
+            draw.line((x, top, x, bottom), fill="#f0f0f0", width=1)
     for label, key, color in series:
         values = [float(row[key]) for row in rows]
         lo, hi = min(values), max(values)
@@ -398,9 +404,6 @@ def autofocus_curve_chart() -> None:
         for row, pt in zip(rows, pts):
             r = 5 if row["phase"] == "coarse" else 4
             draw.ellipse((pt[0] - r, pt[1] - r, pt[0] + r, pt[1] + r), fill=color, outline=PANEL, width=2)
-        best_i = values.index(max(values))
-        bx, by = pts[best_i]
-        draw.text((bx + 7, by - 18), label, font=FONT["tiny"], fill=color)
     draw.text((left, bottom + 24), "sample index: coarse sweep first, fine sweep shaded", font=FONT["small"], fill=MUTED)
     draw.text((left, height - 48), "The key operational lesson was to avoid flat or unstable local fine-frame preferences and preserve robust chip-corner context.", font=FONT["small"], fill=MUTED)
     draw_legend(draw, [(label, color) for label, _, color in series], left, height - 88)
@@ -438,7 +441,7 @@ def crop_candidate(row: dict[str, Any], thumb_size: tuple[int, int]) -> Image.Im
             right = min(original.width, int(cx + crop_side / 2))
             bottom = min(original.height, int(cy + crop_side / 2))
             crop = original.crop((left, top, right, bottom))
-            crop = ImageOps.pad(crop, thumb_size, method=Image.Resampling.LANCZOS, color=(245, 245, 245))
+            crop = ImageOps.pad(crop, thumb_size, method=Image.Resampling.LANCZOS, color=(255, 255, 255))
             scale_x = thumb_size[0] / max(1, right - left)
             scale_y = thumb_size[1] / max(1, bottom - top)
             rx0 = int((x - left) * scale_x)
@@ -446,21 +449,21 @@ def crop_candidate(row: dict[str, Any], thumb_size: tuple[int, int]) -> Image.Im
             rx1 = int((x + w - left) * scale_x)
             ry1 = int((y + h - top) * scale_y)
             d = ImageDraw.Draw(crop)
-            d.rectangle((rx0, ry0, rx1, ry1), outline="#f2c14e", width=3)
-            d.rectangle((rx0 + 1, ry0 + 1, rx1 - 1, ry1 - 1), outline="#20242a", width=1)
+            d.rectangle((rx0, ry0, rx1, ry1), outline=UW_GOLD, width=3)
+            d.rectangle((rx0 + 1, ry0 + 1, rx1 - 1, ry1 - 1), outline=INK, width=1)
             return crop
     crop_path = safe_path(row.get("crop_path"))
     if crop_path is not None:
         with Image.open(crop_path) as original:
             return ImageOps.pad(ImageOps.exif_transpose(original).convert("RGB"), thumb_size, method=Image.Resampling.LANCZOS)
-    return Image.new("RGB", thumb_size, "#eceff2")
+    return Image.new("RGB", thumb_size, "#f2f2f2")
 
 
 def select_rows(
     rows: list[dict[str, Any]],
     predicate,
     score_key: str,
-    n: int = 4,
+    n: int = 3,
     excluded_ids: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     excluded_ids = excluded_ids or set()
@@ -513,29 +516,29 @@ def category_grid(
     columns = [
         (
             "deterministic feature",
-            select_rows(all_rows, lambda r: not bool(r.get("predicted_flake")), "detector_score", n=4),
+            select_rows(all_rows, lambda r: not bool(r.get("predicted_flake")), "detector_score", n=3),
             "det",
         ),
         (
             "first ML flake",
-            select_rows(all_rows, lambda r: bool(r.get("predicted_flake")), "flake_probability", n=4, excluded_ids=good_ids),
+            select_rows(all_rows, lambda r: bool(r.get("predicted_flake")), "flake_probability", n=3, excluded_ids=good_ids),
             "first",
         ),
         (
             "second pass good",
-            select_rows(good_rows, lambda r: bool(r.get("predicted_good")), "good_probability", n=4),
+            select_rows(good_rows, lambda r: bool(r.get("predicted_good")), "good_probability", n=3),
             "good",
         ),
     ]
     cell_w, cell_h = 330, 252
-    rows_n = 4
+    rows_n = 3
     margin_x, title_h, header_h = 42, 62, 56
     width = margin_x * 2 + cell_w * 3
     height = 38 + title_h + header_h + rows_n * cell_h + 34
     img = Image.new("RGB", (width, height), BG)
     draw = ImageDraw.Draw(img)
     draw.text((42, 28), f"{material}: examples by pass category", font=FONT["title"], fill=INK)
-    draw.text((44, 74), "Each crop is centered on the saved detector bbox; yellow box marks the candidate.", font=FONT["small"], fill=MUTED)
+    draw.text((44, 74), "Each crop is centered on the saved detector bbox; gold box marks the candidate.", font=FONT["small"], fill=MUTED)
     start_y = 38 + title_h
     thumb_size = (292, 166)
     for ci, (header, rows, kind) in enumerate(columns):
