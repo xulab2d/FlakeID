@@ -1,0 +1,20 @@
+{
+  "generated_from": {
+    "graphene_first_pass": "outputs/candidate_baseline_20260508/candidate_baseline_summary.json",
+    "graphene_second_pass": "outputs/candidate_good_bad_torch_20260511_run3/good_bad_torch_summary.json",
+    "hbn_logistic_baseline": "outputs/candidate_baseline_hbn_20260515_first_pass/candidate_baseline_summary.json",
+    "hbn_first_pass_torch": "outputs/first_pass_torch_hbn_20260515/first_pass_torch_summary.json",
+    "hbn_second_pass_region": "outputs/candidate_good_bad_torch_hbn_20260519_region_domains/good_bad_torch_summary.json",
+    "autofocus": "outputs/autofocus_benchmark_summary.json"
+  },
+  "figures": [
+    "validation_metrics_by_pass.png",
+    "good_bad_ranking_metrics.png",
+    "application_funnel_counts.png",
+    "flake_category_grid_graphene.png",
+    "flake_category_grid_hbn.png",
+    "autofocus_coarse_winners.png",
+    "autofocus_problem_stack_curve.png",
+    "autofocus_top_left_failure_contact.jpg"
+  ]
+}
