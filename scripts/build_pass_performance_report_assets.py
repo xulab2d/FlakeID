@@ -506,6 +506,14 @@ def label_for(row: dict[str, Any], kind: str) -> list[str]:
     return [part for part in [first, second, third] if part]
 
 
+def passes_first_ml(row: dict[str, Any]) -> bool:
+    if not bool(row.get("predicted_flake")):
+        return False
+    if "predicted_usable_thickness" in row and not bool(row.get("predicted_usable_thickness")):
+        return False
+    return True
+
+
 def category_grid(
     material: str,
     all_rows: list[dict[str, Any]],
@@ -515,17 +523,17 @@ def category_grid(
     good_ids = {r.get("candidate_id") for r in good_rows if r.get("predicted_good")}
     columns = [
         (
-            "deterministic feature",
-            select_rows(all_rows, lambda r: not bool(r.get("predicted_flake")), "detector_score", n=3),
+            "detector only",
+            select_rows(all_rows, lambda r: not passes_first_ml(r), "detector_score", n=3),
             "det",
         ),
         (
-            "first ML flake",
-            select_rows(all_rows, lambda r: bool(r.get("predicted_flake")), "flake_probability", n=3, excluded_ids=good_ids),
+            "first ML only",
+            select_rows(all_rows, passes_first_ml, "flake_probability", n=3, excluded_ids=good_ids),
             "first",
         ),
         (
-            "second pass good",
+            "second pass",
             select_rows(good_rows, lambda r: bool(r.get("predicted_good")), "good_probability", n=3),
             "good",
         ),
@@ -538,7 +546,7 @@ def category_grid(
     img = Image.new("RGB", (width, height), BG)
     draw = ImageDraw.Draw(img)
     draw.text((42, 28), f"{material}: examples by pass category", font=FONT["title"], fill=INK)
-    draw.text((44, 74), "Each crop is centered on the saved detector bbox; gold box marks the candidate.", font=FONT["small"], fill=MUTED)
+    draw.text((44, 74), "Columns are mutually exclusive; gold box marks the saved detector candidate.", font=FONT["small"], fill=MUTED)
     start_y = 38 + title_h
     thumb_size = (292, 166)
     for ci, (header, rows, kind) in enumerate(columns):

@@ -70,7 +70,7 @@ One bookkeeping caveat: the BN1r2 post-scan summary is marked `material: hbn`, b
 
 ## Visual Category Grids
 
-These grids show what the three pass categories look like in practice. The first column is a deterministic feature that did not pass first ML. The second is a first-pass ML flake that was not one of the final good picks. The third is a second-pass good candidate.
+These grids show what the three pass categories look like in practice. The first column passed the deterministic detector but did not pass the first ML selection. The second passed the first ML selection but not the second-pass good-flake threshold. The third passed the second-pass threshold.
 
 ![Graphene category grid](assets/pass_performance_2026_07_13/flake_category_grid_graphene.png)
 
